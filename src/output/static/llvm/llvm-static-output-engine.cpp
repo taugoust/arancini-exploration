@@ -1285,6 +1285,12 @@ Value *llvm_static_output_engine_impl::materialise_port(
                 return builder.CreateNot(v);
             case unary_arith_op::sqrt:
                 return builder.CreateUnaryIntrinsic(Intrinsic::sqrt, v);
+            case unary_arith_op::clz:
+                return builder.CreateIntrinsic(Intrinsic::ctlz, {v->getType()},
+                                               {v, builder.getFalse()});
+            case unary_arith_op::ctz:
+                return builder.CreateIntrinsic(Intrinsic::cttz, {v->getType()},
+                                               {v, builder.getFalse()});
             default:
                 throw std::runtime_error("unsupported unary operator");
             }

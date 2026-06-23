@@ -154,38 +154,23 @@ void shifts_translator::do_translate() {
         auto in = amt;
         amt = read_operand(2);
 
-        if (src->val().type().width() == 64) {
-            amt = builder().insert_and(
-                amt->val(),
-                builder().insert_constant_i(amt->val().type(), 0x3F)->val());
-        } else {
-            amt = builder().insert_and(
-                amt->val(),
-                builder().insert_constant_i(amt->val().type(), 0x1F)->val());
-        }
-        if (is_immediate_operand(1)) { // shift amount is an immediate
-            auto shift_val = ((constant_node *)amt)->const_val_i();
+        auto count_mask = src->val().type().width() == 64 ? 0x3F : 0x1F;
+        if (is_immediate_operand(2)) { // shift amount is an immediate
+            auto shift_val = ((constant_node *)amt)->const_val_i() & count_mask;
+            amt = builder().insert_constant_i(amt->val().type(), shift_val);
 
             if (shift_val != 0) {
                 value_node *shift;
+                auto inv_amt = builder().insert_constant_i(
+                    amt->val().type(), in->val().type().width() - shift_val);
                 if (inst == XED_ICLASS_SHRD) {
                     shift = builder().insert_lsr(src->val(), amt->val());
-                    shift = builder().insert_bit_insert(
-                        shift->val(),
-                        builder()
-                            .insert_bit_extract(
-                                in->val(), in->val().type().width() - shift_val,
-                                shift_val)
-                            ->val(),
-                        in->val().type().width() - shift_val, shift_val);
+                    auto in_part = builder().insert_lsl(in->val(), inv_amt->val());
+                    shift = builder().insert_or(shift->val(), in_part->val());
                 } else {
                     shift = builder().insert_lsl(src->val(), amt->val());
-                    shift = builder().insert_bit_insert(
-                        shift->val(),
-                        builder()
-                            .insert_bit_extract(in->val(), 0, shift_val)
-                            ->val(),
-                        0, shift_val);
+                    auto in_part = builder().insert_lsr(in->val(), inv_amt->val());
+                    shift = builder().insert_or(shift->val(), in_part->val());
                 }
 
                 write_operand(0, shift->val());
@@ -224,6 +209,15 @@ void shifts_translator::do_translate() {
                             flag_op::ignore);
             }
         } else { // shift amount is cl (8bit)
+            if (src->val().type().width() == 64) {
+                amt = builder().insert_and(
+                    amt->val(),
+                    builder().insert_constant_i(amt->val().type(), 0x3F)->val());
+            } else {
+                amt = builder().insert_and(
+                    amt->val(),
+                    builder().insert_constant_i(amt->val().type(), 0x1F)->val());
+            }
             auto zero_shift = builder().insert_cmpeq(
                 amt->val(),
                 builder().insert_constant_i(amt->val().type(), 0)->val());
@@ -232,25 +226,19 @@ void shifts_translator::do_translate() {
 
             // shift amount is not 0
             value_node *shift;
-            auto to_clear = builder().insert_sub(
+            auto wide_amt = auto_cast(in->val().type(), amt);
+            auto inverse_amt = builder().insert_sub(
                 builder()
                     .insert_constant_i(in->val().type(),
                                        in->val().type().width())
                     ->val(),
-                amt->val());
+                wide_amt->val());
             if (inst == XED_ICLASS_SHRD) {
                 shift = builder().insert_lsr(src->val(), amt->val());
-
-                // clear lower <width-amt> bits in in
-                in = builder().insert_lsr(in->val(), to_clear->val());
-                in = builder().insert_lsl(in->val(), to_clear->val());
-
+                in = builder().insert_lsl(in->val(), inverse_amt->val());
             } else {
                 shift = builder().insert_lsl(src->val(), amt->val());
-
-                // clear upper <width-amt> bits in in
-                in = builder().insert_lsl(in->val(), to_clear->val());
-                in = builder().insert_lsr(in->val(), to_clear->val());
+                in = builder().insert_lsr(in->val(), inverse_amt->val());
             }
             shift = builder().insert_or(shift->val(), in->val());
             write_operand(0, shift->val());

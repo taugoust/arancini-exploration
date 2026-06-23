@@ -5,6 +5,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    phoenix = {
+      url = "git+https://github.com/taugoust/phoenix.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     xed-src = {
       url = "github:intelxed/xed";
       flake = false;
@@ -33,6 +37,7 @@
       self,
       nixpkgs,
       flake-utils,
+      phoenix,
       xed-src,
       mbuild-src,
       fadec-src,
@@ -82,9 +87,7 @@
           }
         ) { };
         native_pkgs = import nixpkgs { system = system; };
-      in
-      {
-        defaultPackage = native_pkgs.stdenv.mkDerivation {
+        arancini-package = native_pkgs.stdenv.mkDerivation {
           name = "arancini";
           pname = "txlat";
           src = self;
@@ -122,6 +125,152 @@
             					cmakeConfigurePhase
             				'';
           cmakeFlags = [ "-DBUILD_TESTS=1" ];
+        };
+        phoenix-seq = phoenix.packages.${system}.phoenix-x86_64-musl-static-seq;
+        phoenix-linear-regression-seq-bin = phoenix-seq.overrideAttrs (_old: {
+          installPhase = ''
+            mkdir -p "$out/bin"
+            install -m755 phoenix-2.0/tests/linear_regression/linear_regression-seq \
+              "$out/bin/linear_regression-seq-static-musl"
+          '';
+        });
+        phoenix-matrix-multiply-seq-bin = phoenix-seq.overrideAttrs (_old: {
+          installPhase = ''
+            mkdir -p "$out/bin"
+            install -m755 phoenix-2.0/tests/matrix_multiply/matrix_multiply-seq \
+              "$out/bin/matrix_multiply-seq-static-musl"
+          '';
+        });
+        phoenix-string-match-seq-bin = phoenix-seq.overrideAttrs (_old: {
+          installPhase = ''
+            mkdir -p "$out/bin"
+            install -m755 phoenix-2.0/tests/string_match/string_match-seq \
+              "$out/bin/string_match-seq-static-musl"
+          '';
+        });
+        phoenix-word-count-seq-bin = phoenix-seq.overrideAttrs (_old: {
+          installPhase = ''
+            mkdir -p "$out/bin"
+            install -m755 phoenix-2.0/tests/word_count/word_count-seq \
+              "$out/bin/word_count-seq-static-musl"
+          '';
+        });
+      in
+      {
+        defaultPackage = arancini-package;
+        checks = native_pkgs.lib.optionalAttrs (system == "aarch64-linux") {
+          phoenix-histogram-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-histogram-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-histogram-seq-static-musl
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-kmeans-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-kmeans-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-kmeans-seq-static-musl
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-linear-regression-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-linear-regression-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-phoenix-root=${phoenix-linear-regression-seq-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-linear-regression-seq-static-musl
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-matrix-multiply-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-matrix-multiply-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-phoenix-root=${phoenix-matrix-multiply-seq-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-matrix-multiply-seq-static-musl
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-string-match-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-string-match-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-phoenix-root=${phoenix-string-match-seq-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-string-match-seq-static-musl
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-word-count-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-word-count-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-phoenix-root=${phoenix-word-count-seq-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-word-count-seq-static-musl
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-pca-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-pca-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-pca-seq-static-musl
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
         };
       }
     )

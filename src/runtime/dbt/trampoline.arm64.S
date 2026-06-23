@@ -25,7 +25,6 @@ call_native:
 
     // Set frame pointer to x86 context block
     mov x29, x1
-    mov x18, x2
 
     blr x0 // call translation block
 
@@ -39,9 +38,10 @@ call_native:
     ldp x4, x5, [sp], #16 // Restore x4 and x5 from the stack and adjust sp by 16 bytes
 
 
-    // NOTE: x0 not restored on stack, used for return code
-    ldp x2, x3, [sp], #32 // Restore x2 and x3 from the stack and adjust sp by 32 bytes
-    ldr x1, [sp, #-8]     // Restore only x1
+    // NOTE: x0/x1 are not restored from the stack: together they carry the
+    // native_call_result return value (exit_code, chain_address).
+    ldp x2, x3, [sp], #16 // Restore x2 and x3 from the stack and adjust sp by 16 bytes
+    add sp, sp, #16       // Discard saved x0 and x1
 
     ldp x27, x28, [sp], #16 // Restore x27 and x28 from the stack and adjust sp by 16 bytes
     ldp x25, x26, [sp], #16 // Restore x25 and x26 from the stack and adjust sp by 16 bytes

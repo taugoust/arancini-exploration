@@ -789,7 +789,7 @@ class arith_node : public value_node {
     port zero_, negative_, overflow_, carry_;
 };
 
-enum class unary_arith_op { bnot, neg, complement, sqrt };
+enum class unary_arith_op { bnot, neg, complement, sqrt, clz, ctz };
 
 class unary_arith_node : public arith_node {
   public:

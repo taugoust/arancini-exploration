@@ -326,6 +326,20 @@ class ir_builder {
         return create_and_insert<unary_arith_node>(unary_arith_op::bnot, lhs);
     }
 
+    /// @brief count leading zero bits
+    /// @param lhs
+    /// @return a clz node
+    value_node *insert_clz(port &lhs) {
+        return create_and_insert<unary_arith_node>(unary_arith_op::clz, lhs);
+    }
+
+    /// @brief count trailing zero bits
+    /// @param lhs
+    /// @return a ctz node
+    value_node *insert_ctz(port &lhs) {
+        return create_and_insert<unary_arith_node>(unary_arith_op::ctz, lhs);
+    }
+
     /// @brief compare equal
     /// @param lhs
     /// @param rhs

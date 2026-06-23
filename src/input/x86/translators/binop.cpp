@@ -307,25 +307,20 @@ void binop_translator::do_translate() {
     case XED_ICLASS_BSR: {
         auto src = read_operand(1);
         auto type = src->val().type();
-        // auto src_b =
-        // builder().insert_bitcast(value_type::vector(value_type::u1(),
-        // type.width()), src->val());
-        auto mask = builder().insert_constant_i(type, 1);
 
-        auto idx = builder().insert_constant_i(type, 0);
-        for (int i = 0; i < type.width(); i++) {
-            auto tmp = builder().insert_and(src->val(), mask->val());
-            auto is_set = builder().insert_cmpeq(tmp->val(), mask->val());
-            idx = builder().insert_csel(
-                is_set->val(), builder().insert_constant_i(type, i)->val(),
-                idx->val());
-            mask = builder().insert_lsl(
-                mask->val(), builder().insert_constant_i(type, 1)->val());
-        }
         auto is_z = builder().insert_cmpeq(
             src->val(), builder().insert_constant_i(type, 0)->val());
+        auto lz = builder().insert_clz(src->val());
+        auto idx = builder().insert_sub(
+            builder().insert_constant_i(type, type.width() - 1)->val(),
+            lz->val());
+
         write_reg(reg_offsets::ZF, is_z->val());
-        // either index or undef
+        // Destination is undefined for a zero source; keep the historical
+        // translator result (0) for determinism.
+        idx = builder().insert_csel(
+            is_z->val(), builder().insert_constant_i(type, 0)->val(),
+            idx->val());
         write_operand(0, idx->val());
 
         break;
@@ -408,28 +403,17 @@ void binop_translator::do_translate() {
 
         auto src = read_operand(1);
         auto type = src->val().type();
-        // auto src_b =
-        // builder().insert_bitcast(value_type::vector(value_type::u1(),
-        // type.width()), src->val());
-        auto mask = builder().insert_constant_i(type, 1 << type.width() - 1);
-
-        auto idx = builder().insert_constant_i(type, type.width() - 1);
-        for (int i = type.width() - 1; i >= 0; i--) {
-            auto tmp = builder().insert_and(src->val(), mask->val());
-            auto is_set = builder().insert_cmpeq(tmp->val(), mask->val());
-            // auto bit = builder().insert_vector_extract(src_b->val(), i);
-            // auto is_set = builder().insert_cmpeq(bit->val(),
-            // builder().insert_constant_i(value_type::u1(), 1)->val());
-            idx = builder().insert_csel(
-                is_set->val(), builder().insert_constant_i(type, i)->val(),
-                idx->val());
-            mask = builder().insert_lsr(
-                mask->val(), builder().insert_constant_i(type, 1)->val());
-        }
         auto is_z = builder().insert_cmpeq(
             src->val(), builder().insert_constant_i(type, 0)->val());
+        auto idx = builder().insert_ctz(src->val());
+
         write_reg(reg_offsets::ZF, is_z->val());
-        // either index or undef
+        // Destination is undefined for a zero source; keep the historical
+        // translator result (width - 1) for determinism.
+        idx = builder().insert_csel(
+            is_z->val(),
+            builder().insert_constant_i(type, type.width() - 1)->val(),
+            idx->val());
         write_operand(0, idx->val());
 
         break;

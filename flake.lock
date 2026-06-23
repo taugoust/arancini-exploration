@@ -66,12 +66,33 @@
         "type": "github"
       }
     },
+    "phoenix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1782125977,
+        "narHash": "sha256-AabKS0H+97qPrn0PFpIpFA88x78VeR8Ixo2B7NKm5+k=",
+        "ref": "refs/heads/master",
+        "rev": "8082b5e357e4670059b29da2f29c720d42f2db3f",
+        "revCount": 11,
+        "type": "git",
+        "url": "https://github.com/taugoust/phoenix.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://github.com/taugoust/phoenix.git"
+      }
+    },
     "root": {
       "inputs": {
         "fadec-src": "fadec-src",
         "flake-utils": "flake-utils",
         "mbuild-src": "mbuild-src",
         "nixpkgs": "nixpkgs",
+        "phoenix": "phoenix",
         "xed-src": "xed-src"
       }
     },

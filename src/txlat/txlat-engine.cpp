@@ -299,14 +299,15 @@ void txlat_engine::translate(
                         cmdline.at("output").as<std::string>() +
                         " -no-pie -latomic " + intermediate_file->name() +
                         " -l arancini-runtime -L " + arancini_runtime_lib_dir +
-                        " -Wl,-rpath=" + arancini_runtime_lib_dir + debug_info +
-                        verbose_link);
+                        " -Wl,-rpath=" + arancini_runtime_lib_dir +
+                        " -Wl,-z,now" + debug_info + verbose_link);
         } else if (elf.type() == elf::elf_type::dyn) {
             run_or_fail(
                 cxx_compiler + " -o " + cmdline.at("output").as<std::string>() +
                 " -shared " + intermediate_file->name() + " -L " +
                 arancini_runtime_lib_dir + " -l arancini-runtime -Wl,-rpath=" +
-                arancini_runtime_lib_dir + debug_info + verbose_link);
+                arancini_runtime_lib_dir + " -Wl,-z,now" + debug_info +
+                verbose_link);
         }
         return;
     }
@@ -378,7 +379,7 @@ void txlat_engine::translate(
             // together.
             run_or_fail(fmt::format(
                 "{} -o {} -no-pie -latomic {} {} {} -larancini-runtime -L {} "
-                "-Wl,-T,{}.exec.lds,-rpath={} {} {}",
+                "-Wl,-T,{}.exec.lds -Wl,-rpath={} -Wl,-z,now {} {}",
                 cxx_compiler, cmdline.at("output").as<std::string>(),
                 intermediate_file->name(), libs, phobjsrc->name(),
                 arancini_runtime_lib_dir, architecture,
@@ -398,8 +399,9 @@ void txlat_engine::translate(
                 " -fPIC -shared " + intermediate_file->name() + " " +
                 phobjsrc->name() + tls_defines + " init_lib.c -L " +
                 arancini_runtime_lib_dir + " -l arancini-runtime " + libs +
-                fmt::format(" -Wl,-T,lib.{}.lds,-rpath={} {}", architecture,
-                            arancini_runtime_lib_dir, debug_info));
+                fmt::format(" -Wl,-T,lib.{}.lds -Wl,-rpath={} -Wl,-z,now {}",
+                            architecture, arancini_runtime_lib_dir,
+                            debug_info));
         } else {
             throw std::runtime_error("Input elf type must be either an "
                                      "executable or shared object.");

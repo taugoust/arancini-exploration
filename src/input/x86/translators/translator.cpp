@@ -305,8 +305,12 @@ value_node *translator::read_operand(int opnum) {
         case XED_REG_CLASS_GPR:
             switch (xed_get_register_width_bits(reg)) {
             case 8:
-                // FIXME AH, CH, DH, BH
-                return read_reg(value_type::u8(), xedreg_to_offset(reg));
+                if (reg >= XED_REG_AL && reg <= XED_REG_R15B) {
+                    return read_reg(value_type::u8(), xedreg_to_offset(reg));
+                } else {
+                    auto orig = read_reg(value_type::u64(), xedreg_to_offset(reg));
+                    return builder_.insert_bit_extract(orig->val(), 8, 8);
+                }
             case 16:
                 return read_reg(value_type::u16(), xedreg_to_offset(reg));
             case 32:

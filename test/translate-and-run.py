@@ -6,6 +6,8 @@ import json
 import shutil
 import pprint
 import filecmp
+import hashlib
+import tempfile
 import difflib
 import logging
 import argparse
@@ -66,6 +68,8 @@ class Tester:
             'runtime_environment': env, # default environment same as tester's
             'expected_stdout': None,
             'expected_stderr': None,
+            'expected_stdout_sha256': None,
+            'expected_stderr_sha256': None,
             'expected_status': 0,
             'produced_artifacts': []
         }
@@ -118,6 +122,8 @@ class Tester:
 
         self.compare_output(self.config["expected_stdout"], stdout)
         self.compare_output(self.config["expected_stderr"], stderr)
+        self.compare_output_hash("stdout", self.config["expected_stdout_sha256"], stdout)
+        self.compare_output_hash("stderr", self.config["expected_stderr_sha256"], stderr)
 
     def __del__(self):
         if keep_artifacts:
@@ -128,7 +134,10 @@ class Tester:
                 os.remove(output_file)
 
     def compile(self):
-        output_file = self.input_bin + ".out"
+        fd, output_file = tempfile.mkstemp(prefix=os.path.basename(self.input_bin) + ".",
+                                           suffix=".out", dir=os.getcwd())
+        os.close(fd)
+        os.remove(output_file)
         compile_command = [self.txlat_path, "--input", self.input_bin, "--output", output_file,
                            *self.config["compile_flags"]]
         proc = subprocess.run(compile_command, env=self.config['compile_environment'],
@@ -186,6 +195,17 @@ class Tester:
                 logger.error(f"Diff:\n{diff}")
                 exit(2)
             logger.info("Output matches!")
+
+    def compare_output_hash(self, stream_name, reference_hash, output):
+        if reference_hash is not None:
+            actual_hash = hashlib.sha256(output.encode()).hexdigest()
+            if actual_hash != reference_hash:
+                logger.error(f"{stream_name} sha256 differs")
+                logger.error(f"Reference: {reference_hash}")
+                logger.error(f"Actual:    {actual_hash}")
+                logger.error(f"Actual {stream_name}:\n{output}")
+                exit(2)
+            logger.info(f"{stream_name} sha256 matches!")
 
 def parse_arguments():
     parser = argparse.ArgumentParser()

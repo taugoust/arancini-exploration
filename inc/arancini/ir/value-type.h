@@ -2,6 +2,9 @@
 
 #include <fmt/core.h>
 
+#include <cmath>
+#include <cstdint>
+#include <type_traits>
 #include <vector>
 
 namespace arancini::ir {
@@ -15,6 +18,9 @@ enum class value_type_class {
 class value_type {
   public:
     static value_type v() { return value_type(value_type_class::none, 0); }
+    static value_type u(std::size_t size) {
+        return value_type(value_type_class::unsigned_integer, size, 1);
+    }
     static value_type u1() {
         return value_type(value_type_class::unsigned_integer, 1, 1);
     }
@@ -66,6 +72,33 @@ class value_type {
     static value_type f80() {
         return value_type(value_type_class::floating_point, 80, 1);
     } // x87 double extended-precision
+    static value_type f128() {
+        return value_type(value_type_class::floating_point, 128, 1);
+    }
+
+    template <typename T,
+              typename std::enable_if<std::is_arithmetic_v<T>, int>::type = 0>
+    static value_type from_value(T val) {
+        std::size_t value_bit_size = sizeof(T) * 8;
+        if constexpr (std::is_integral_v<T>) {
+            using unsigned_t = std::make_unsigned_t<T>;
+            auto v = static_cast<unsigned_t>(val < 0 ? -val : val);
+            value_bit_size = 1;
+            while (v >>= 1)
+                ++value_bit_size;
+        }
+
+        if constexpr (std::is_integral_v<T>) {
+            if constexpr (std::is_signed_v<T>)
+                return value_type(value_type_class::signed_integer,
+                                  value_bit_size, 1);
+
+            return value_type(value_type_class::unsigned_integer,
+                              value_bit_size, 1);
+        }
+
+        return value_type(value_type_class::floating_point, value_bit_size, 1);
+    }
 
     using size_type = std::size_t;
 
@@ -115,6 +148,12 @@ class value_type {
     bool is_integer() const {
         return tc_ == value_type_class::signed_integer ||
                tc_ == value_type_class::unsigned_integer;
+    }
+
+    [[nodiscard]]
+    bool is_signed() const {
+        return tc_ == value_type_class::signed_integer ||
+               tc_ == value_type_class::floating_point;
     }
 
     [[nodiscard]]
@@ -193,6 +232,30 @@ class function_type {
 };
 
 } // namespace arancini::ir
+
+template <> struct fmt::formatter<arancini::ir::value_type_class> {
+    template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(arancini::ir::value_type_class vt, FormatContext &ctx) const {
+        using namespace arancini::ir;
+
+        switch (vt) {
+        case value_type_class::none:
+            return fmt::format_to(ctx.out(), "none");
+        case value_type_class::signed_integer:
+            return fmt::format_to(ctx.out(), "signed integer");
+        case value_type_class::unsigned_integer:
+            return fmt::format_to(ctx.out(), "unsigned integer");
+        case value_type_class::floating_point:
+            return fmt::format_to(ctx.out(), "floating point");
+        default:
+            return fmt::format_to(ctx.out(), "unknown");
+        }
+    }
+};
 
 template <> struct fmt::formatter<arancini::ir::value_type> {
     template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {

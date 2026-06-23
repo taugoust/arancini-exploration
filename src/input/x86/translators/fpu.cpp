@@ -45,16 +45,21 @@ void fpu_translator::do_translate() {
             val = builder().insert_bitcast(value_type::f64(), val->val());
             break;
         case 80: {
-            // Works, but ignores the Integer bit
+            // Approximate x87 double extended-precision as f64.  Preserve the
+            // sign, re-bias the exponent (16383 -> 1023), and drop the low
+            // fraction bits plus the explicit integer bit.
             val = builder().insert_bitcast(value_type::u80(), val->val());
-            // Sign + Sign of exponent
-            auto sign_s = builder().insert_bit_extract(val->val(), 78, 2);
-            auto exponent = builder().insert_bit_extract(val->val(), 64, 10);
+            auto sign = builder().insert_bit_extract(val->val(), 79, 1);
+            auto exponent = builder().insert_bit_extract(val->val(), 64, 15);
+            exponent = builder().insert_zx(value_type::u16(), exponent->val());
+            exponent = builder().insert_sub(
+                exponent->val(), builder().insert_constant_u16(15360)->val());
+            exponent = builder().insert_trunc(value_type::u16(), exponent->val());
             auto frac = builder().insert_bit_extract(val->val(), 11, 52);
             val = builder().insert_constant_f64(0);
-            val = builder().insert_bit_insert(val->val(), sign_s->val(), 62, 2);
+            val = builder().insert_bit_insert(val->val(), sign->val(), 63, 1);
             val = builder().insert_bit_insert(val->val(), exponent->val(), 52,
-                                              10);
+                                              11);
             val = builder().insert_bit_insert(val->val(), frac->val(), 0, 52);
 
             // Does not work, as truncxfdf2 isn't available
@@ -98,7 +103,7 @@ void fpu_translator::do_translate() {
             break;
         case 64: {
             // dump_xed_encoding();
-            if (is_immediate_operand(0)) {
+            if (!is_memory_operand(0)) {
                 // FST ST(i) and FSTP ST(i)
                 // Get the stack index,
                 int st_idx = fpu_get_instruction_index(0);
@@ -116,6 +121,7 @@ void fpu_translator::do_translate() {
                 //                                      c1_default->val(), 9,
                 //                                      1);
                 // write_reg(reg_offsets::X87_STS, status->val());
+                break;
             } else {
                 // Working for DD /2 and DB /7
                 write_operand(0, st0->val());
@@ -123,9 +129,18 @@ void fpu_translator::do_translate() {
             }
         }
         case 80: {
-            // TODO: FPU: Missing underflow checks etc.
+            // TODO: FPU: Missing underflow checks etc.  Approximate f64 as x87
+            // double extended-precision with a re-biased exponent (1023 ->
+            // 16383) and the explicit integer bit set for normal values.
             st0 = builder().insert_bitcast(value_type::u64(), st0->val());
-            // Grab fraction
+
+            auto sign = builder().insert_bit_extract(st0->val(), 63, 1);
+            auto exponent = builder().insert_bit_extract(st0->val(), 52, 11);
+            exponent = builder().insert_zx(value_type::u16(), exponent->val());
+            exponent = builder().insert_add(
+                exponent->val(), builder().insert_constant_u16(15360)->val());
+            exponent = builder().insert_trunc(value_type::u16(), exponent->val());
+
             auto frac = builder().insert_and(
                 st0->val(),
                 builder().insert_constant_u64(0x000FFFFFFFFFFFFF)->val());
@@ -133,29 +148,15 @@ void fpu_translator::do_translate() {
                 frac->val(), builder().insert_constant_u64(11)->val());
             frac = builder().insert_zx(value_type::u80(), frac->val());
 
-            // Grab exponent (exept of exponent sign)
-            auto exponent = builder().insert_and(
-                st0->val(),
-                builder().insert_constant_u64(0x3FF0000000000000)->val());
-            exponent = builder().insert_zx(value_type::u80(), exponent->val());
-            exponent = builder().insert_lsl(
-                exponent->val(), builder().insert_constant_u64(12)->val());
+            auto ext = builder().insert_constant_u80(0);
+            ext = builder().insert_bit_insert(ext->val(), sign->val(), 79, 1);
+            ext = builder().insert_bit_insert(ext->val(), exponent->val(), 64,
+                                              15);
+            ext = builder().insert_bit_insert(
+                ext->val(), builder().insert_constant_u8(1)->val(), 63, 1);
+            ext = builder().insert_or(ext->val(), frac->val());
 
-            // Remove frac & exponent (exept of exponent sign) from 64bit value
-            st0 = builder().insert_and(
-                st0->val(),
-                builder().insert_constant_u64(0xC000000000000000)->val());
-
-            // Extend to u80 and shift sign & esponents sign into correct pos
-            st0 = builder().insert_zx(value_type::u80(), st0->val());
-            st0 = builder().insert_lsl(
-                st0->val(), builder().insert_constant_u64(16)->val());
-
-            // Reinsert fraction & exponent
-            st0 = builder().insert_or(st0->val(), frac->val());
-            st0 = builder().insert_or(st0->val(), exponent->val());
-
-            write_operand(0, st0->val());
+            write_operand(0, ext->val());
             break;
         }
         default:
@@ -329,6 +330,27 @@ void fpu_translator::do_translate() {
                 std::string("unsupported X87 FADD/FSUB... instruction"));
         }
 
+        auto idx = fpu_get_instruction_index(0);
+        switch (inst_class) {
+        case XED_ICLASS_FADDP:
+        case XED_ICLASS_FSUBP:
+        case XED_ICLASS_FSUBRP:
+        case XED_ICLASS_FMULP:
+        case XED_ICLASS_FDIVP:
+        case XED_ICLASS_FDIVRP:
+            // Some encodings (e.g. "fsubp st(1), st") are reported by XED
+            // with ST0 as operand 0.  The x87 pop forms store into ST(i)
+            // before popping; for the implicit ST1 form, force that target.
+            if (idx == 0) {
+                val_0 = fpu_stack_get(1);
+                val_1 = fpu_stack_get(0);
+                idx = 1;
+            }
+            break;
+        default:
+            break;
+        }
+
         // Do caluclation
         switch (inst_class) {
         case XED_ICLASS_FADD:
@@ -367,7 +389,6 @@ void fpu_translator::do_translate() {
         }
 
         // Write result
-        auto idx = fpu_get_instruction_index(0);
         fpu_stack_set(idx, val_0->val());
 
         // TODO: FPU: Write correct TAG, catch 0, NaN, denormalised, Infinity
@@ -432,7 +453,9 @@ void fpu_translator::do_translate() {
     case XED_ICLASS_FABS: {
         auto mask = builder().insert_constant_u64(0x7FFFFFFFFFFFFFFF);
         auto st0 = read_operand(0);
+        st0 = builder().insert_bitcast(value_type::u64(), st0->val());
         st0 = builder().insert_and(st0->val(), mask->val());
+        st0 = builder().insert_bitcast(value_type::f64(), st0->val());
         write_operand(0, st0->val());
 
         SET_C1_BIT(0);
@@ -444,6 +467,7 @@ void fpu_translator::do_translate() {
         auto mask_inv = builder().insert_constant_u64(0x8000000000000000);
 
         auto st0 = read_operand(0);
+        st0 = builder().insert_bitcast(value_type::u64(), st0->val());
 
         // Value without sign
         auto res = builder().insert_and(st0->val(), mask->val());
@@ -452,6 +476,7 @@ void fpu_translator::do_translate() {
             builder().insert_not(st0->val())->val(), mask_inv->val());
         // Add negated sign back to value
         res = builder().insert_or(res->val(), neg_sign->val());
+        res = builder().insert_bitcast(value_type::f64(), res->val());
 
         write_operand(0, res->val());
 

@@ -11,7 +11,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(INCLUDE_PATH ../../../inc)
 add_library(
   arancini-output-arm64
-  arm64-dynamic-output-engine.cpp arm64-instruction.cpp
+  arm64-assembler.cpp arm64-dynamic-output-engine.cpp arm64-instruction.cpp
   arm64-instruction-builder.cpp arm64-translation-context.cpp)
 
 target_include_directories(arancini-output-arm64
@@ -19,3 +19,4 @@ target_include_directories(arancini-output-arm64
 
 target_link_libraries(arancini-output-arm64 PRIVATE arancini-ir keystone)
 target_compile_definitions(arancini-output-arm64 PUBLIC ARCH_AARCH64)
+

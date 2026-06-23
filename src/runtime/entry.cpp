@@ -65,13 +65,15 @@ static void segv_handler([[maybe_unused]] int signo,
     segv_lock.lock();
 #if defined(ARCH_X86_64)
     unsigned long rip = ((ucontext_t *)context)->uc_mcontext.gregs[REG_RIP];
+#elif defined(ARCH_AARCH64)
+    unsigned long rip = ((ucontext_t *)context)->uc_mcontext.pc;
 #else
     unsigned long rip = 0;
 #endif
 
     util::global_logger.fatal(
-        "SEGMENTATION FAULT: code={:#x}, rip={:#x}, virtual-address={}\n",
-        info->si_code, rip, info->si_addr);
+        "SIGNAL {}: code={:#x}, host-pc={:#x}, virtual-address={}\n",
+        signo, info->si_code, rip, info->si_addr);
 
     unsigned i = 0;
     auto range = ctx_->get_thread_range();
@@ -94,10 +96,12 @@ static void segv_handler([[maybe_unused]] int signo,
 static void init_signals() {
     struct sigaction sa = {0};
 
-    // Capture SIGSEGV
+    // Capture signals likely to be raised by translated/JIT code.
     sa.sa_flags = SA_SIGINFO;
     sa.sa_sigaction = &segv_handler;
-    if (sigaction(SIGSEGV, &sa, nullptr) < 0) {
+    if (sigaction(SIGSEGV, &sa, nullptr) < 0 ||
+        sigaction(SIGILL, &sa, nullptr) < 0 ||
+        sigaction(SIGBUS, &sa, nullptr) < 0) {
         throw std::runtime_error("unable to initialise signal handling");
     }
 }
@@ -283,7 +287,7 @@ extern "C" void *initialise_dynamic_runtime(unsigned long entry_point, int argc,
 
     // Create a memory area for the stack.
     // FIXME hardcoded stack_size and memory size
-    unsigned long stack_size = 0x10000;
+    unsigned long stack_size = 8 * 1024 * 1024;
     auto stack_base =
         ctx_->add_memory_region(0x10000000 - stack_size, stack_size, true);
 
@@ -303,10 +307,12 @@ extern "C" void *initialise_dynamic_runtime(unsigned long entry_point, int argc,
             reinterpret_cast<intptr_t>(ctx_->get_memory_ptr(0)) + stack_size,
         ctx_, 1);
     // x86_state->GS = (unsigned long long)ctx_->get_memory_ptr(0);
+    // X87_STACK_BASE is consumed by generated host loads/stores directly, not
+    // as a guest-memory offset.  Keep the actual host mapping address so x87
+    // stack slots cannot alias guest .data/.bss addresses.
     x86_state->X87_STACK_BASE =
         (intptr_t)mmap(NULL, 64, PROT_READ | PROT_WRITE,
-                       MAP_ANONYMOUS | MAP_PRIVATE, -1, 0) -
-        (intptr_t)ctx_->get_memory_ptr(0);
+                       MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     x86_state->X87_TAG = std::uint16_t(0xFFFF);
     x86_state->X87_CTRL = std::uint16_t(0x037F);
 

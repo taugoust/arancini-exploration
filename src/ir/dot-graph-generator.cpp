@@ -208,6 +208,15 @@ void dot_graph_generator::visit_unary_arith_node(unary_arith_node &n) {
     case unary_arith_op::complement:
         s << "cmpl";
         break;
+    case unary_arith_op::sqrt:
+        s << "sqrt";
+        break;
+    case unary_arith_op::clz:
+        s << "clz";
+        break;
+    case unary_arith_op::ctz:
+        s << "ctz";
+        break;
     default:
         s << "unknown-unary";
         break;
