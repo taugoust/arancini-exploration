@@ -1604,7 +1604,7 @@ private:
             return imm;
         }
 
-        return move_to_register(imm);
+        return move_to_register(imm, reg_type);
     }
 
     reg_or_imm move_immediate(immediate_operand imm, ir::value_type max_imm_type) {

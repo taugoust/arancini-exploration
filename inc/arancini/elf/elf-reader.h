@@ -173,6 +173,7 @@ class rela {
     }
     [[nodiscard]] bool is_tpoff() const { return type_ == R_X86_64_TPOFF64; }
     [[nodiscard]] bool is_dtpmod() const { return type_ == R_X86_64_DTPMOD64; }
+    [[nodiscard]] bool is_copy() const { return type_ == R_X86_64_COPY; }
     [[nodiscard]] int type_on_host() const {
 #if defined(ARCH_RISCV64)
         switch (type_) {

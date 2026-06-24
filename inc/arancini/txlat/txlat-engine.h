@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/program_options.hpp>
+#include <map>
 #include <memory>
 #include <string>
 
@@ -52,8 +53,9 @@ class txlat_engine {
         const std::vector<std::shared_ptr<elf::program_header>> &phbins,
         const std::map<off_t, unsigned int> &end_addresses,
         const elf::symbol &sym, std::ofstream &s,
-        std::map<uint64_t, std::string> &ifuncs, bool force_global = false,
-        bool omit_prefix = false);
+        std::map<uint64_t, std::string> &ifuncs,
+        const std::map<std::string, uint64_t> &native_symbol_addrs,
+        bool force_global = false, bool omit_prefix = false);
     static std::shared_ptr<ir::chunk>
     generate_wrapper(input::input_arch &ia,
                      const native_lib::nlib_function &func);
@@ -66,6 +68,7 @@ class txlat_engine {
         const std::vector<std::shared_ptr<elf::rela_table>> &relocations,
         const std::vector<std::shared_ptr<elf::relr_array>> &relocations_r,
         const std::shared_ptr<elf::symbol_table> &sym_t,
-        const std::vector<std::shared_ptr<elf::program_header>> &tls);
+        const std::vector<std::shared_ptr<elf::program_header>> &tls,
+        const std::map<std::string, uint64_t> &native_symbol_addrs);
 };
 } // namespace arancini::txlat

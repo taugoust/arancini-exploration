@@ -50,8 +50,8 @@ void mov_translator::do_translate() {
         // xed encoding: cdq edx eax
         auto eax =
             builder().insert_bitcast(value_type::s32(), read_operand(1)->val());
-        auto sx = builder().insert_sx(value_type::s64(), eax->val());
-        auto hi = builder().insert_bit_extract(sx->val(), 32, 32);
+        auto shift = builder().insert_constant_u8(31);
+        auto hi = builder().insert_asr(eax->val(), shift->val());
 
         write_operand(0, hi->val());
         break;

@@ -127,6 +127,7 @@
           cmakeFlags = [ "-DBUILD_TESTS=1" ];
         };
         phoenix-seq = phoenix.packages.${system}.phoenix-x86_64-musl-static-seq;
+        phoenix-glibc-dynamic-seq = phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq or null;
         phoenix-linear-regression-seq-bin = phoenix-seq.overrideAttrs (_old: {
           installPhase = ''
             mkdir -p "$out/bin"
@@ -168,6 +169,125 @@
             checkPhase = ''
               runHook preCheck
               ctest --output-on-failure -R phoenix-histogram-seq-static-musl
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-histogram-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-histogram-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-histogram-seq-glibc
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-kmeans-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-kmeans-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-kmeans-seq-glibc
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-linear-regression-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-linear-regression-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-linear-regression-seq-glibc
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-matrix-multiply-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-matrix-multiply-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-matrix-multiply-seq-glibc
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-pca-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-pca-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-pca-seq-glibc
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-string-match-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-string-match-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-string-match-seq-glibc
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-word-count-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-word-count-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R phoenix-word-count-seq-glibc
               runHook postCheck
             '';
             installPhase = ''

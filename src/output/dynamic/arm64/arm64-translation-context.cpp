@@ -585,6 +585,50 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
     // TODO: Somehow avoid allocating this
     allocate_flags(var_alloc_, flag_map, n);
 
+    auto vector_lane_int_impl = [&](const value& dest_regset,
+                                    const value& lhs_regset,
+                                    const value& rhs_regset,
+                                    binary_arith_op op) -> bool
+    {
+        if (!n.val().type().is_vector() || n.val().type().is_floating_point())
+            return false;
+
+        const auto lane_width = n.val().type().element_width();
+        if (lane_width >= value_types::base_type.element_width() ||
+            value_types::base_type.element_width() % lane_width != 0)
+            return false;
+
+        sets_flags = false;
+        for (std::size_t i = 0; i < dest_regset.size(); ++i) {
+            builder_.move(variable(dest_regset[i]), 0);
+            for (std::size_t bit = 0;
+                 bit < value_types::base_type.element_width();
+                 bit += lane_width) {
+                auto lhs_lane = var_alloc_.allocate(value_type::u64());
+                auto rhs_lane = var_alloc_.allocate(value_type::u64());
+                auto out_lane = var_alloc_.allocate(value_type::u64());
+
+                builder_.ubfx(lhs_lane, lhs_regset[i], bit, lane_width);
+                builder_.ubfx(rhs_lane, rhs_regset[i], bit, lane_width);
+                switch (op) {
+                case binary_arith_op::add:
+                    builder_.add(out_lane, lhs_lane, rhs_lane);
+                    break;
+                case binary_arith_op::sub:
+                    builder_.sub(out_lane, lhs_lane, rhs_lane);
+                    break;
+                case binary_arith_op::mul:
+                    builder_.mul(out_lane, lhs_lane, rhs_lane);
+                    break;
+                default:
+                    return false;
+                }
+                builder_.bfi(dest_regset[i], out_lane, bit, lane_width);
+            }
+        }
+        return true;
+    };
+
     auto mul_impl = [&](const value& dest_regset,
                         value& lhs_regset,
                         value& rhs_regset)
@@ -592,6 +636,9 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
         // Vector multiplication
         // TODO: replace by efficient vectorized version
         if (n.val().type().is_vector()) {
+            if (vector_lane_int_impl(dest_regset, lhs_regset, rhs_regset,
+                                     binary_arith_op::mul))
+                return;
             sets_flags = false;
             for (std::size_t i = 0; i < dest_regset.size(); ++i)
                 builder_.mul(dest_regset[i], lhs_regset[i], rhs_regset[i]);
@@ -761,6 +808,9 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
 	case binary_arith_op::add:
         // Vector addition
         if (is_vector_op) {
+            if (vector_lane_int_impl(dest_regset, lhs_regset, rhs_regset,
+                                     binary_arith_op::add))
+                break;
             sets_flags = false;
             for (std::size_t i = 0; i < dest_regset.size(); ++i) {
                 if (dest_regset[i].type().is_floating_point())
@@ -790,6 +840,9 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
 	case binary_arith_op::sub:
         // Vector subtraction
         if (is_vector_op) {
+            if (vector_lane_int_impl(dest_regset, lhs_regset, rhs_regset,
+                                     binary_arith_op::sub))
+                break;
             sets_flags = false;
             for (std::size_t i = 0; i < dest_regset.size(); ++i) {
                 if (dest_regset[i].type().is_floating_point())

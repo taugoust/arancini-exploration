@@ -89,7 +89,7 @@ void txlat_engine::translate(
     std::optional<NativeLibs> nlibs;
     std::set<std::string> needed_nlibs;
 #ifdef NLIB
-    if (cmdline.count("nlib") && !cmdline.count("no-static")) {
+    if (cmdline.count("nlib")) {
         const auto &filename = cmdline.at("nlib").as<std::string>();
         std::ifstream a(filename);
         nlibs.emplace(a);
@@ -134,6 +134,7 @@ void txlat_engine::translate(
     std::vector<std::shared_ptr<rela_table>> relocations;
     std::vector<std::shared_ptr<relr_array>> relocations_r;
     std::set<symbol> unique_translated;
+    std::map<std::string, uint64_t> native_symbol_addrs;
     // pairs of symbols and maximum size (aka. until the end of the section)
     std::vector<std::pair<symbol, size_t>> zero_size;
 
@@ -149,18 +150,18 @@ void txlat_engine::translate(
             dyn_sym = std::move(st);
 #ifdef NLIB
             for (const auto &sym : dyn_sym->symbols()) {
-                if (nlibs.has_value()) {
-                    if (sym.section_index() != SHN_UNDEF) {
-                        // The current binary defines this symbol so the wrapper
-                        // should go here
-                        if (nlibs->native_functions().count(sym.name())) {
-                            // We have an external symbol of the right name
-                            const nlib_function &func =
-                                nlibs->native_functions().at(sym.name());
-                            needed_nlibs.insert(func.libname);
-                            oe->add_chunk(generate_wrapper(*ia, func));
-                        }
-                    }
+                if (nlibs.has_value() && nlibs->native_functions().count(sym.name())) {
+                    const nlib_function &func =
+                        nlibs->native_functions().at(sym.name());
+                    needed_nlibs.insert(func.libname);
+                    oe->add_chunk(generate_wrapper(*ia, func));
+                    // Reserve a synthetic guest PC for nlib functions. This lets
+                    // dynamic relocations (GLOB_DAT/JUMP_SLOT) resolve to a value
+                    // that the static/dynamic bridge can dispatch to the wrapper,
+                    // even in --no-static mode where no PLT chunks are emitted.
+                    native_symbol_addrs.emplace(sym.name(),
+                                                0x700000000000ull +
+                                                    native_symbol_addrs.size() * 0x10ull);
                 }
             }
 #endif
@@ -216,6 +217,10 @@ void txlat_engine::translate(
                                 p.first.section_index(), p.first.info(), 0);
 
         oe->add_chunk(translate_symbol(*ia, elf, fixed_sym));
+    }
+
+    for (const auto &[name, addr] : native_symbol_addrs) {
+        oe->add_function_decl(addr, "__arancini__" + name + "_wrapper");
     }
 
     // Generate decls for external functions found in the relocation table
@@ -335,7 +340,102 @@ void txlat_engine::translate(
 
     std::map<uint64_t, std::string> ifuncs =
         generate_guest_sections(phobjsrc, elf, load_phdrs, filename, dyn_sym,
-                                relocations, relocations_r, sym_t, tls);
+                                relocations, relocations_r, sym_t, tls,
+                                native_symbol_addrs);
+
+    auto init_exec_src = tf.create_file(prefix, ".c");
+    {
+        auto s = init_exec_src->open();
+        s << "#include <stdio.h>\n"
+          << "#include <unistd.h>\n"
+          << "#include <stdint.h>\n"
+          << "#include <stdlib.h>\n"
+          << "#include <ctype.h>\n"
+          << "#include <string.h>\n"
+          << "extern \"C\" FILE *__guest__stdout __attribute__((weak));\n"
+          << "extern \"C\" FILE *__guest__stderr __attribute__((weak));\n"
+          << "extern \"C\" char *__guest__optarg __attribute__((weak));\n"
+          << "extern \"C\" char *optarg;\n"
+          << "extern \"C\" int __arancini_getopt(int argc, char **argv, const char *optstring) {\n"
+          << "  int ret = getopt(argc, argv, optstring);\n"
+          << "  if (&__guest__optarg) __guest__optarg = optarg;\n"
+          << "  return ret;\n"
+          << "}\n"
+          << "extern \"C\" int arancini_call_guest2_i32(uint64_t guest_addr, uint64_t arg0, uint64_t arg1);\n"
+          << "static thread_local uint64_t __arancini_qsort_compar;\n"
+          << "static int __arancini_qsort_cmp(const void *a, const void *b) {\n"
+          << "  return arancini_call_guest2_i32(__arancini_qsort_compar, (uint64_t)a, (uint64_t)b);\n"
+          << "}\n"
+          << "extern \"C\" void __arancini_qsort(void *base, uint64_t nmemb, uint64_t size, uint64_t compar) {\n"
+          << "  uint64_t prev = __arancini_qsort_compar;\n"
+          << "  __arancini_qsort_compar = compar;\n"
+          << "  qsort(base, nmemb, size, __arancini_qsort_cmp);\n"
+          << "  __arancini_qsort_compar = prev;\n"
+          << "}\n"
+          << "static int __arancini_printf_arg_kinds(const char *fmt, int *kinds, int max) {\n"
+          << "  int n = 0;\n"
+          << "  for (const char *p = fmt; p && *p && n < max; ++p) {\n"
+          << "    if (*p != '%') continue;\n"
+          << "    if (*++p == '%') continue;\n"
+          << "    while (*p && strchr(\"#0- +'\", *p)) ++p;\n"
+          << "    if (*p == '*') { kinds[n++] = 0; ++p; }\n"
+          << "    else while (*p && isdigit((unsigned char)*p)) ++p;\n"
+          << "    if (*p == '.') {\n"
+          << "      ++p;\n"
+          << "      if (*p == '*') { if (n < max) kinds[n++] = 0; ++p; }\n"
+          << "      else while (*p && isdigit((unsigned char)*p)) ++p;\n"
+          << "    }\n"
+          << "    while (*p && strchr(\"hljztL\", *p)) ++p;\n"
+          << "    if (!*p || *p == 'm') continue;\n"
+          << "    kinds[n++] = strchr(\"aAeEfFgG\", *p) != 0;\n"
+          << "  }\n"
+          << "  return n;\n"
+          << "}\n"
+          << "template <typename... Args>\n"
+          << "static int __arancini_printf_dispatch(const char *fmt, const int *kinds, int n, const uint64_t *g, const double *f, int gi, int fi, Args... args) {\n"
+          << "  if (n <= 0) {\n"
+          << "    if constexpr (sizeof...(Args) == 0) { int ret = fputs(fmt, stdout); return ret < 0 ? ret : (int)strlen(fmt); }\n"
+          << "    else return printf(fmt, args...);\n"
+          << "  }\n"
+          << "  if constexpr (sizeof...(Args) >= 10) {\n"
+          << "    return printf(fmt, args...);\n"
+          << "  } else {\n"
+          << "    return *kinds ? __arancini_printf_dispatch(fmt, kinds + 1, n - 1, g, f, gi, fi + 1, args..., f[fi])\n"
+          << "                  : __arancini_printf_dispatch(fmt, kinds + 1, n - 1, g, f, gi + 1, fi, args..., g[gi]);\n"
+          << "  }\n"
+          << "}\n"
+          << "extern \"C\" int __arancini_printf(const char *fmt, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, double f0, double f1, double f2, double f3, double f4, double f5, double f6, double f7) {\n"
+          << "  uint64_t g[] = {rsi, rdx, rcx, r8, r9};\n"
+          << "  double f[] = {f0, f1, f2, f3, f4, f5, f6, f7};\n"
+          << "  int kinds[10];\n"
+          << "  int n = __arancini_printf_arg_kinds(fmt, kinds, 10);\n"
+          << "  return __arancini_printf_dispatch(fmt, kinds, n, g, f, 0, 0);\n"
+          << "}\n"
+          << "template <typename... Args>\n"
+          << "static int __arancini_fprintf_dispatch(FILE *stream, const char *fmt, const int *kinds, int n, const uint64_t *g, const double *f, int gi, int fi, Args... args) {\n"
+          << "  if (n <= 0) {\n"
+          << "    if constexpr (sizeof...(Args) == 0) { int ret = fputs(fmt, stream); return ret < 0 ? ret : (int)strlen(fmt); }\n"
+          << "    else return fprintf(stream, fmt, args...);\n"
+          << "  }\n"
+          << "  if constexpr (sizeof...(Args) >= 10) {\n"
+          << "    return fprintf(stream, fmt, args...);\n"
+          << "  } else {\n"
+          << "    return *kinds ? __arancini_fprintf_dispatch(stream, fmt, kinds + 1, n - 1, g, f, gi, fi + 1, args..., f[fi])\n"
+          << "                  : __arancini_fprintf_dispatch(stream, fmt, kinds + 1, n - 1, g, f, gi + 1, fi, args..., g[gi]);\n"
+          << "  }\n"
+          << "}\n"
+          << "extern \"C\" int __arancini_fprintf(FILE *stream, const char *fmt, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, double f0, double f1, double f2, double f3, double f4, double f5, double f6, double f7) {\n"
+          << "  uint64_t g[] = {rdx, rcx, r8, r9};\n"
+          << "  double f[] = {f0, f1, f2, f3, f4, f5, f6, f7};\n"
+          << "  int kinds[10];\n"
+          << "  int n = __arancini_printf_arg_kinds(fmt, kinds, 10);\n"
+          << "  return __arancini_fprintf_dispatch(stream, fmt, kinds, n, g, f, 0, 0);\n"
+          << "}\n"
+          << "static __attribute__((constructor)) void init_exec(void) {\n"
+          << "  if (&__guest__stdout) __guest__stdout = stdout;\n"
+          << "  if (&__guest__stderr) __guest__stderr = stderr;\n"
+          << "}\n";
+    }
 
     if (!cmdline.count("static-binary")) {
         std::string libs;
@@ -378,11 +478,12 @@ void txlat_engine::translate(
             // Generate the final output binary by compiling everything
             // together.
             run_or_fail(fmt::format(
-                "{} -o {} -no-pie -latomic {} {} {} -larancini-runtime -L {} "
-                "-Wl,-T,{}.exec.lds -Wl,-rpath={} -Wl,-z,now {} {}",
+                "{} -o {} -no-pie -latomic {} {} {} {} "
+                "-larancini-runtime -L {} -Wl,-T,{}.exec.lds "
+                "-Wl,-rpath={} -Wl,-z,now {} {}",
                 cxx_compiler, cmdline.at("output").as<std::string>(),
                 intermediate_file->name(), libs, phobjsrc->name(),
-                arancini_runtime_lib_dir, architecture,
+                init_exec_src->name(), arancini_runtime_lib_dir, architecture,
                 arancini_runtime_lib_dir, debug_info, verbose_link));
         } else if (elf.type() == elf::elf_type::dyn) {
             // Generate the final output library by compiling everything
@@ -515,6 +616,7 @@ void txlat_engine::add_symbol_to_output(
     const std::vector<std::shared_ptr<program_header>> &phbins,
     const std::map<off_t, unsigned int> &end_addresses, const symbol &sym,
     std::ofstream &s, std::map<uint64_t, std::string> &ifuncs,
+    const std::map<std::string, uint64_t> &native_symbol_addrs,
     bool force_global, bool omit_prefix) {
     auto type = sym.type();
 
@@ -583,6 +685,10 @@ void txlat_engine::add_symbol_to_output(
           << sym.value() - phdr->address() - (i % 2) * (phdr->data_size())
           << '\n'
           << ".size \"" << name << "\", " << std::dec << sym.size() << '\n';
+    } else if (auto native = native_symbol_addrs.find(sym.name());
+               native != native_symbol_addrs.end()) {
+        s << ".set \"" << name << "\", 0x" << std::hex << native->second
+          << '\n';
     }
     if (force_global || sym.is_global()) {
         s << ".globl \"" << name << "\"\n";
@@ -694,7 +800,8 @@ std::map<uint64_t, std::string> txlat_engine::generate_guest_sections(
     const std::vector<std::shared_ptr<elf::rela_table>> &relocations,
     const std::vector<std::shared_ptr<elf::relr_array>> &relocations_r,
     const std::shared_ptr<symbol_table> &sym_t,
-    const std::vector<std::shared_ptr<elf::program_header>> &tls) {
+    const std::vector<std::shared_ptr<elf::program_header>> &tls,
+    const std::map<std::string, uint64_t> &native_symbol_addrs) {
     std::map<uint64_t, std::string> ifuncs;
     std::map<off_t, unsigned int> end_addresses;
     auto s = phobjsrc->open();
@@ -789,7 +896,8 @@ std::map<uint64_t, std::string> txlat_engine::generate_guest_sections(
 
     if (dyn_sym) {
         for (const auto &sym : dyn_sym->symbols()) {
-            add_symbol_to_output(load_phdrs, end_addresses, sym, s, ifuncs);
+            add_symbol_to_output(load_phdrs, end_addresses, sym, s, ifuncs,
+                                 native_symbol_addrs);
         }
     }
 
@@ -797,13 +905,13 @@ std::map<uint64_t, std::string> txlat_engine::generate_guest_sections(
         if (sym.name() == "_DYNAMIC" && sym.section_index() != SHN_UNDEF) {
 
             add_symbol_to_output(load_phdrs, end_addresses, sym, s, ifuncs,
-                                 true);
+                                 native_symbol_addrs, true);
             s << ".hidden __guest___DYNAMIC\n";
             if (elf.type() == elf::elf_type::exec) {
                 symbol sy{"guest_exec_DYNAMIC", sym.value(), sym.size(),
                           sym.section_index(),  sym.info(),  0};
                 add_symbol_to_output(load_phdrs, end_addresses, sy, s, ifuncs,
-                                     true, true);
+                                     native_symbol_addrs, true, true);
             }
         }
         static const std::set<std::string> symbols_to_copy_global{
@@ -811,7 +919,7 @@ std::map<uint64_t, std::string> txlat_engine::generate_guest_sections(
             "__thread_list_lock", "__sysinfo",         "__environ"};
         if (symbols_to_copy_global.count(sym.name())) {
             add_symbol_to_output(load_phdrs, end_addresses, sym, s, ifuncs,
-                                 true);
+                                 native_symbol_addrs, true);
         }
     }
 
@@ -884,10 +992,30 @@ std::map<uint64_t, std::string> txlat_engine::generate_guest_sections(
                   << '\n'
                   << ".section .grela\n";
 
+            } else if (dyn_sym &&
+                       native_symbol_addrs.count(
+                           dyn_sym->symbols()[reloc.symbol()].name())) {
+#if defined(ARCH_AARCH64)
+                constexpr int host_relative_reloc = R_AARCH64_RELATIVE;
+#elif defined(ARCH_RISCV64)
+                constexpr int host_relative_reloc = R_RISCV_RELATIVE;
+#else
+                constexpr int host_relative_reloc = 0;
+#endif
+                s << ".quad 0x" << std::hex << reloc.offset() << "\n.int 0x"
+                  << host_relative_reloc << "\n.int 0x0\n.quad 0x"
+                  << native_symbol_addrs.at(
+                         dyn_sym->symbols()[reloc.symbol()].name())
+                  << '\n';
             } else if (reloc.is_relative()) {
                 s << ".quad 0x" << std::hex << reloc.offset() << "\n.int 0x"
                   << reloc.type_on_host() << "\n.int 0x" << reloc.symbol()
                   << "\n.quad 0x" << reloc.addend() << '\n';
+            } else if (reloc.is_copy()) {
+                // The guest copy relocation destination is already present in
+                // the embedded data.  Do not emit a host R_*_COPY relocation to
+                // the prefixed guest symbol; libc globals that are intentionally
+                // shared with nlib wrappers are initialized by the runtime.
             } else {
                 // Mark this relocation as needing adjustment on the symbol
                 // index (it needs to match the index of the symbol in the

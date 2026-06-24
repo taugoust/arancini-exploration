@@ -522,16 +522,97 @@ void x86_input_arch::gen_wrapper(ir_builder &builder,
     builder.begin_chunk("__arancini__" + func.fname + "_wrapper");
     builder.begin_packet(0);
 
+    if (func.fname == "__libc_start_main") {
+        auto main = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RDI),
+            static_cast<unsigned long>(reg_idx::RDI), "RDI");
+        auto argc = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RSI),
+            static_cast<unsigned long>(reg_idx::RSI), "RSI");
+        auto argv = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RDX),
+            static_cast<unsigned long>(reg_idx::RDX), "RDX");
+
+        builder.insert_write_pc(main->val(), br_type::br);
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RDI),
+                                 static_cast<unsigned long>(reg_idx::RDI),
+                                 "RDI", argc->val());
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RSI),
+                                 static_cast<unsigned long>(reg_idx::RSI),
+                                 "RSI", argv->val());
+        builder.end_packet();
+        builder.end_chunk();
+        return;
+    }
+
     std::vector<value_type> params = func.sig.parameter_types();
 
     const std::array<reg_offsets, 6> gpr_arg_regoff{
         reg_offsets::RDI, reg_offsets::RSI, reg_offsets::RDX,
         reg_offsets::RCX, reg_offsets::R8,  reg_offsets::R9};
     const std::array<reg_idx, 6> gpr_arg_regidx{reg_idx::RDI, reg_idx::RSI,
-                                                reg_idx::RCX, reg_idx::RDX,
+                                                reg_idx::RDX, reg_idx::RCX,
                                                 reg_idx::R8,  reg_idx::R9};
-    const std::array<const char *, 6> gpr_arg_regname{"RDI", "RSI", "RCX",
-                                                      "RDX", "R8",  "R9"};
+    const std::array<const char *, 6> gpr_arg_regname{"RDI", "RSI", "RDX",
+                                                      "RCX", "R8",  "R9"};
+
+    if (func.fname == "printf" || func.fname == "fprintf") {
+        std::vector<port *> args;
+        args.reserve(14);
+        for (auto reg : gpr_arg_regoff) {
+            args.push_back(
+                &builder
+                     .insert_read_reg(value_type::u64(),
+                                      static_cast<unsigned long>(reg),
+                                      offset_to_idx(reg), offset_to_name(reg))
+                     ->val());
+        }
+
+        const std::array<reg_offsets, 8> xmm_arg_regoff{
+            reg_offsets::ZMM0, reg_offsets::ZMM1, reg_offsets::ZMM2,
+            reg_offsets::ZMM3, reg_offsets::ZMM4, reg_offsets::ZMM5,
+            reg_offsets::ZMM6, reg_offsets::ZMM7};
+        for (auto reg : xmm_arg_regoff) {
+            auto raw = builder.insert_read_reg(
+                value_type::u64(), static_cast<unsigned long>(reg),
+                offset_to_idx(reg), offset_to_name(reg));
+            args.push_back(&builder.insert_bitcast(value_type::f64(), raw->val())
+                                ->val());
+        }
+
+        std::vector<value_type> helper_params;
+        helper_params.reserve(args.size());
+        for (size_t i = 0; i < args.size(); i++) {
+            helper_params.push_back(i < gpr_arg_regoff.size()
+                                        ? value_type::u64()
+                                        : value_type::f64());
+        }
+        action_node *call = builder.insert_internal_call(
+            std::make_unique<internal_function>(
+                func.fname == "fprintf" ? "__arancini_fprintf"
+                                         : "__arancini_printf",
+                function_type(value_type::u32(), helper_params)),
+            args);
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RAX),
+                                 static_cast<unsigned long>(reg_idx::RAX),
+                                 "RAX", call->val());
+        builder.end_packet();
+
+        builder.begin_packet(1);
+        auto rsp = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RSP),
+            static_cast<unsigned long>(reg_idx::RSP), "RSP");
+        auto retaddr = builder.insert_read_mem(value_type::u64(), rsp->val());
+        auto new_rsp = builder.insert_add(
+            rsp->val(), builder.insert_constant_u64(8)->val());
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RSP),
+                                 static_cast<unsigned long>(reg_idx::RSP),
+                                 "RSP", new_rsp->val());
+        builder.insert_write_pc(retaddr->val(), br_type::ret);
+        builder.end_packet();
+        builder.end_chunk();
+        return;
+    }
 
     int gri = 0;
 
@@ -564,8 +645,13 @@ void x86_input_arch::gen_wrapper(ir_builder &builder,
         }
     }
 
+    std::string call_name = func.fname;
+    if (func.fname == "getopt")
+        call_name = "__arancini_getopt";
+    else if (func.fname == "qsort")
+        call_name = "__arancini_qsort";
     action_node *call = builder.insert_internal_call(
-        std::make_unique<internal_function>(func.fname, func.sig), args);
+        std::make_unique<internal_function>(call_name, func.sig), args);
 
     const value_type &retty = func.sig.return_type();
     switch (retty.type_class()) {

@@ -4,6 +4,7 @@
 #include <arancini/runtime/exec/x86/x86-cpu-state.h>
 #include <arancini/util/logger.h>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 
@@ -202,6 +203,11 @@ lib_info *lib_info_list_tail = nullptr;
 int lib_count = 0;
 }
 
+extern "C" {
+GUEST_DECL(extern FILE *, stdout) __attribute__((weak));
+GUEST_DECL(extern FILE *, stderr) __attribute__((weak));
+}
+
 static std::unordered_map<unsigned long, void *> fn_addrs;
 
 /*
@@ -266,6 +272,13 @@ extern "C" void *initialise_dynamic_runtime(unsigned long entry_point, int argc,
     }
 
     util::global_logger.info("arancini: dbt: initialise\n");
+
+    if (&GUEST(stdout) != nullptr) {
+        GUEST(stdout) = stdout;
+    }
+    if (&GUEST(stderr) != nullptr) {
+        GUEST(stderr) = stderr;
+    }
 
     bool optimise = true;
 
@@ -468,6 +481,29 @@ extern "C" void *lookup_static_fn_addr(unsigned long guest_addr) {
     }
 
     return nullptr;
+}
+
+extern "C" int arancini_call_guest2_i32(uint64_t guest_addr, uint64_t arg0,
+                                        uint64_t arg1) {
+    x86_cpu_state saved = *__current_state;
+
+    __current_state->PC = guest_addr;
+    __current_state->RDI = arg0;
+    __current_state->RSI = arg1;
+    __current_state->RSP = saved.RSP - sizeof(uint64_t);
+    *reinterpret_cast<uint64_t *>(__current_state->RSP) = 0;
+
+    int rc = 0;
+    for (int i = 0; i < 1024; ++i) {
+        rc = ctx_->invoke(__current_state);
+        if (rc != 0) {
+            break;
+        }
+    }
+
+    int ret = static_cast<int32_t>(__current_state->RAX);
+    *__current_state = saved;
+    return ret;
 }
 
 /*
