@@ -183,6 +183,22 @@ void txlat_engine::translate(
                         sym->value());
                     if (!sym->value())
                         continue;
+#ifdef NLIB
+                    if (nlibs.has_value() &&
+                        nlibs->native_functions().count(sym->name())) {
+                        const nlib_function &func =
+                            nlibs->native_functions().at(sym->name());
+                        needed_nlibs.insert(func.libname);
+                        if (!native_symbol_addrs.count(sym->name())) {
+                            oe->add_chunk(generate_wrapper(*ia, func));
+                            native_symbol_addrs.emplace(sym->name(), sym->value());
+                        }
+                        oe->add_function_decl(
+                            sym->value(),
+                            "__arancini__" + sym->name() + "_wrapper");
+                        continue;
+                    }
+#endif
                     if (!sym->size()) {
                         // get the section the symbol is in
 
@@ -222,6 +238,15 @@ void txlat_engine::translate(
     for (const auto &[name, addr] : native_symbol_addrs) {
         oe->add_function_decl(addr, "__arancini__" + name + "_wrapper");
     }
+    if (nlibs.has_value() &&
+        nlibs->native_functions().count("__libc_start_main")) {
+        nlib_function ret{"__libc_start_main_return", "",
+                          function_type(value_type::v(), {})};
+        oe->add_chunk(generate_wrapper(*ia, ret));
+        oe->add_function_decl(
+            0x70000000fff0ull,
+            "__arancini____libc_start_main_return_wrapper");
+    }
 
     // Generate decls for external functions found in the relocation table
 
@@ -241,8 +266,14 @@ void txlat_engine::translate(
                         ::util::global_logger.debug(
                             "Adding decl for {} @ {:#x}\n", sym.name(),
                             st.first);
-                        oe->add_function_decl(st.first,
-                                              "__arancini__" + sym.name());
+                        std::string decl_name = "__arancini__" + sym.name();
+#ifdef NLIB
+                        if (nlibs.has_value() &&
+                            nlibs->native_functions().count(sym.name())) {
+                            decl_name += "_wrapper";
+                        }
+#endif
+                        oe->add_function_decl(st.first, decl_name);
                     }
                 }
             next:;
@@ -352,9 +383,9 @@ void txlat_engine::translate(
           << "#include <stdlib.h>\n"
           << "#include <ctype.h>\n"
           << "#include <string.h>\n"
-          << "extern \"C\" FILE *__guest__stdout __attribute__((weak));\n"
-          << "extern \"C\" FILE *__guest__stderr __attribute__((weak));\n"
-          << "extern \"C\" char *__guest__optarg __attribute__((weak));\n"
+          << "extern \"C\" FILE *__guest__stdout __attribute__((weak)) = nullptr;\n"
+          << "extern \"C\" FILE *__guest__stderr __attribute__((weak)) = nullptr;\n"
+          << "extern \"C\" char *__guest__optarg __attribute__((weak)) = nullptr;\n"
           << "extern \"C\" char *optarg;\n"
           << "extern \"C\" int __arancini_getopt(int argc, char **argv, const char *optstring) {\n"
           << "  int ret = getopt(argc, argv, optstring);\n"
@@ -536,12 +567,16 @@ void txlat_engine::translate(
     elf1.parse();
 
     std::shared_ptr<symbol_table> generated_dynsym;
+    std::shared_ptr<symbol_table> generated_symtab;
     std::vector<std::shared_ptr<rela_table>> generated_rela;
 
     for (auto &s : elf1.sections()) {
         if (s->type() == elf::section_type::dynamic_symbol_table) {
             auto st = std::static_pointer_cast<symbol_table>(s);
             generated_dynsym = std::move(st);
+        } else if (s->type() == elf::section_type::symbol_table) {
+            auto st = std::static_pointer_cast<symbol_table>(s);
+            generated_symtab = std::move(st);
         } else if (s->type() == elf::section_type::relocation_addend) {
             auto st = std::static_pointer_cast<rela_table>(s);
             generated_rela.push_back(std::move(st));
@@ -549,12 +584,32 @@ void txlat_engine::translate(
     }
 
     std::map<std::string, int> guest_symbol_to_index;
+    std::map<std::string, uint64_t> guest_symbol_to_value;
+
+    const auto record_guest_symbol = [&](const symbol &sym, size_t index,
+                                         bool record_index) {
+        const std::string &name = sym.name();
+        constexpr const char *prefix = "__guest__";
+        constexpr size_t prefix_len = 9;
+        if (name.compare(0, prefix_len, prefix) != 0) {
+            return;
+        }
+        const std::string guest_name = name.substr(prefix_len);
+        if (record_index) {
+            guest_symbol_to_index.emplace(guest_name, index);
+        }
+        if (sym.value()) {
+            guest_symbol_to_value.emplace(guest_name, sym.value());
+        }
+    };
 
     const std::vector<symbol> &guest_symbols = generated_dynsym->symbols();
     for (size_t i = 0; i < guest_symbols.size(); ++i) {
-        const std::string &string = guest_symbols[i].name();
-        if (string.size() >= 9) {
-            guest_symbol_to_index.emplace(string.substr(9), i);
+        record_guest_symbol(guest_symbols[i], i, true);
+    }
+    if (generated_symtab) {
+        for (const auto &sym : generated_symtab->symbols()) {
+            record_guest_symbol(sym, 0, false);
         }
     }
 
@@ -589,18 +644,43 @@ void txlat_engine::translate(
                            0x10000000) { // symbol index needs to be adjusted to
                                          // point to correct index in target
                                          // dyn_sym table
-                    unsigned int new_symbol =
-                        guest_symbol_to_index[dyn_sym->symbols()[reloc.symbol()]
-                                                  .name()];
+                    const std::string &guest_name =
+                        dyn_sym->symbols()[reloc.symbol()].name();
                     unsigned int buf = reloc.type() & ~0xf0000000;
                     file.seekp(relocs->file_offset() + 24 * i + 8);
-                    file.write(reinterpret_cast<const char *>(&buf),
-                               sizeof(buf));
-                    file.write(reinterpret_cast<const char *>(&new_symbol),
-                               sizeof(new_symbol));
+                    if (auto sym_index = guest_symbol_to_index.find(guest_name);
+                        sym_index != guest_symbol_to_index.end()) {
+                        unsigned int new_symbol = sym_index->second;
+                        file.write(reinterpret_cast<const char *>(&buf),
+                                   sizeof(buf));
+                        file.write(reinterpret_cast<const char *>(&new_symbol),
+                                   sizeof(new_symbol));
+                    } else if (auto sym_value = guest_symbol_to_value.find(guest_name);
+                               sym_value != guest_symbol_to_value.end()) {
+#if defined(ARCH_AARCH64)
+                        constexpr int host_relative_reloc = R_AARCH64_RELATIVE;
+#elif defined(ARCH_RISCV64)
+                        constexpr int host_relative_reloc = R_RISCV_RELATIVE;
+#else
+                        constexpr int host_relative_reloc = 0;
+#endif
+                        unsigned int no_symbol = 0;
+                        uint64_t addend = sym_value->second + reloc.addend();
+                        file.write(reinterpret_cast<const char *>(
+                                       &host_relative_reloc),
+                                   sizeof(host_relative_reloc));
+                        file.write(reinterpret_cast<const char *>(&no_symbol),
+                                   sizeof(no_symbol));
+                        file.write(reinterpret_cast<const char *>(&addend),
+                                   sizeof(addend));
+                    } else {
+                        throw std::runtime_error("Unable to resolve generated guest symbol " +
+                                                 guest_name);
+                    }
                     // Write new_symbol to (relocs.file_offset() + 24 * i + 12)
                     // and reloc.type() & ~0xf0000000 to (relocs.file_offset() +
-                    // 24 * i + 8)
+                    // 24 * i + 8), or rewrite the relocation as relative when
+                    // the generated guest symbol is not exported in .dynsym.
                 } else if (transform) {
                     throw std::runtime_error(
                         "Invalid relocation transform type " +

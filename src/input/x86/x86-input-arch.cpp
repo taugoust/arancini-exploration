@@ -532,7 +532,12 @@ void x86_input_arch::gen_wrapper(ir_builder &builder,
         auto argv = builder.insert_read_reg(
             value_type::u64(), static_cast<unsigned long>(reg_offsets::RDX),
             static_cast<unsigned long>(reg_idx::RDX), "RDX");
+        auto rsp = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RSP),
+            static_cast<unsigned long>(reg_idx::RSP), "RSP");
+        auto retaddr = builder.insert_constant_u64(0x70000000fff0ull);
 
+        builder.insert_write_mem(rsp->val(), retaddr->val());
         builder.insert_write_pc(main->val(), br_type::br);
         builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RDI),
                                  static_cast<unsigned long>(reg_idx::RDI),
@@ -540,6 +545,23 @@ void x86_input_arch::gen_wrapper(ir_builder &builder,
         builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RSI),
                                  static_cast<unsigned long>(reg_idx::RSI),
                                  "RSI", argv->val());
+        builder.end_packet();
+        builder.end_chunk();
+        return;
+    }
+
+    if (func.fname == "__libc_start_main_return") {
+        auto status = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RAX),
+            static_cast<unsigned long>(reg_idx::RAX), "RAX");
+        auto status32 = builder.insert_trunc(value_type::u32(), status->val());
+        std::vector<port *> args{&status32->val()};
+        builder.insert_internal_call(
+            std::make_unique<internal_function>(
+                "exit", function_type(value_type::v(), {value_type::u32()})),
+            args);
+        builder.insert_write_pc(builder.insert_constant_u64(0)->val(),
+                                br_type::br);
         builder.end_packet();
         builder.end_chunk();
         return;
