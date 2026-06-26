@@ -15,12 +15,21 @@ set(static-musl-phoenix-root
 set(static-musl-pthread-phoenix-root
     ""
     CACHE PATH "Path to Phoenix x86_64 musl static pthread package root (with bin/ and data/)")
+set(static-glibc-pthread-phoenix-root
+    ""
+    CACHE PATH "Path to Phoenix x86_64 glibc static pthread package root (with bin/ and data/)")
 set(dynamic-phoenix-root
     ""
     CACHE PATH "Path to dynamically linked Phoenix x86_64 package root (with bin/)")
 set(dynamic-musl-phoenix-root
     ""
     CACHE PATH "Path to dynamically linked Phoenix x86_64 musl package root (with bin/ and data/)")
+set(dynamic-musl-pthread-phoenix-root
+    ""
+    CACHE PATH "Path to dynamically linked Phoenix x86_64 musl pthread package root (with bin/ and data/)")
+set(dynamic-glibc-pthread-phoenix-root
+    ""
+    CACHE PATH "Path to dynamically linked Phoenix x86_64 glibc pthread package root (with bin/ and data/)")
 set(host-libatomic-libdir
     ""
     CACHE PATH "Path to host libatomic directory for translated test executables")
@@ -377,7 +386,7 @@ if(static-musl-pthread-phoenix-root)
   file(
     GENERATE
     OUTPUT "${phoenix-kmeans-pthread-config}"
-    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"e4aae32678ffd444988bdad08e5e9c253e6c23394021ff669d97ab09fcb9f3e9\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"d6791d3fba43f4b37ae1403fc41b1a7e6a7d545df57c96c90761361688f93c05\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
 
   add_test(
     NAME "phoenix-kmeans-pthread-static-musl:dynamic"
@@ -396,7 +405,7 @@ if(static-musl-pthread-phoenix-root)
   file(
     GENERATE
     OUTPUT "${phoenix-kmeans-pthread-v2-config}"
-    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"e4aae32678ffd444988bdad08e5e9c253e6c23394021ff669d97ab09fcb9f3e9\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"d6791d3fba43f4b37ae1403fc41b1a7e6a7d545df57c96c90761361688f93c05\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
 
   add_test(
     NAME "phoenix-kmeans-pthread-v2-static-musl:dynamic"
@@ -449,6 +458,1014 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-linear-regression-pthread-v2-bin}" -c
             "${phoenix-linear-regression-pthread-v2-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-pthread-v2-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-matrix-multiply-pthread-bin
+      "${static-musl-pthread-phoenix-root}/bin/matrix_multiply-pthread-static-musl")
+  set(phoenix-matrix-multiply-pthread-v2-bin
+      "${static-musl-pthread-phoenix-root}/bin/matrix_multiply-pthread-v2-static-musl")
+  set(phoenix-matrix-multiply-pthread-workdir
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-workdir")
+  set(phoenix-matrix-multiply-pthread-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-static-musl.dynamic.json")
+  set(phoenix-matrix-multiply-pthread-v2-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-v2-static-musl.dynamic.json")
+
+  file(MAKE_DIRECTORY "${phoenix-matrix-multiply-pthread-workdir}")
+  configure_file(
+    "${CMAKE_SOURCE_DIR}/aarch64.exec.lds"
+    "${phoenix-matrix-multiply-pthread-workdir}/aarch64.exec.lds" COPYONLY)
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "import pathlib; d = pathlib.Path(r'${phoenix-matrix-multiply-pthread-workdir}'); data = bytes(32 * 32 * 4); (d / 'matrix_file_A.txt').write_bytes(data); (d / 'matrix_file_B.txt').write_bytes(data)")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-matrix-multiply-pthread-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"32\"],\n    \"expected_stdout_sha256\": \"f0b05f66263dd77dfeafbcf7ff7704c56c913e7eb730e44385f22b6b79cbe1b3\",\n    \"expected_stderr_sha256\": \"23aab5596dacb17bb8e82fa96b660b092e5739383bc8fcecd731db46448e2f71\"\n}\n")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-matrix-multiply-pthread-v2-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"32\"],\n    \"expected_stdout_sha256\": \"f0b05f66263dd77dfeafbcf7ff7704c56c913e7eb730e44385f22b6b79cbe1b3\",\n    \"expected_stderr_sha256\": \"23aab5596dacb17bb8e82fa96b660b092e5739383bc8fcecd731db46448e2f71\"\n}\n")
+
+  add_test(
+    NAME "phoenix-matrix-multiply-pthread-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-matrix-multiply-pthread-bin}" -c
+            "${phoenix-matrix-multiply-pthread-config}" --log-level INFO)
+  set_tests_properties("phoenix-matrix-multiply-pthread-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY
+                                    "${phoenix-matrix-multiply-pthread-workdir}")
+
+  add_test(
+    NAME "phoenix-matrix-multiply-pthread-v2-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-matrix-multiply-pthread-v2-bin}" -c
+            "${phoenix-matrix-multiply-pthread-v2-config}" --log-level INFO)
+  set_tests_properties("phoenix-matrix-multiply-pthread-v2-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY
+                                    "${phoenix-matrix-multiply-pthread-workdir}")
+
+  set(phoenix-pca-pthread-bin
+      "${static-musl-pthread-phoenix-root}/bin/pca-pthread-static-musl")
+  set(phoenix-pca-pthread-v2-bin
+      "${static-musl-pthread-phoenix-root}/bin/pca-pthread-v2-static-musl")
+  set(phoenix-pca-pthread-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-static-musl.dynamic.json")
+  set(phoenix-pca-pthread-v2-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-v2-static-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-pca-pthread-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"fc9302f98b583a32026aa92846b3f26a929f50c6133679b833d3137b96802f31\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-pca-pthread-v2-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"fc9302f98b583a32026aa92846b3f26a929f50c6133679b833d3137b96802f31\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-pca-pthread-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-pthread-bin}"
+            -c "${phoenix-pca-pthread-config}" --log-level INFO)
+  set_tests_properties("phoenix-pca-pthread-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  add_test(
+    NAME "phoenix-pca-pthread-v2-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-pca-pthread-v2-bin}" -c
+            "${phoenix-pca-pthread-v2-config}" --log-level INFO)
+  set_tests_properties("phoenix-pca-pthread-v2-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-string-match-pthread-bin
+      "${static-musl-pthread-phoenix-root}/bin/string_match-pthread-static-musl")
+  set(phoenix-string-match-pthread-v2-bin
+      "${static-musl-pthread-phoenix-root}/bin/string_match-pthread-v2-static-musl")
+  # The manifest's 50MB string_match input makes elapsed-time stdout unstable;
+  # use a tiny deterministic input for hash-stable regression testing.
+  set(phoenix-string-match-pthread-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-small.txt")
+  set(phoenix-string-match-pthread-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-static-musl.dynamic.json")
+  set(phoenix-string-match-pthread-v2-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-v2-static-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-input}"
+    CONTENT "Helloworld\nhowareyou\nferrari\nwhotheman\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-string-match-pthread-input}\"],\n    \"expected_stdout_sha256\": \"e08f600b364500045cec207460953500ae4063d16f9324ff55d86d946a4663a4\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-v2-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-string-match-pthread-input}\"],\n    \"expected_stdout_sha256\": \"e08f600b364500045cec207460953500ae4063d16f9324ff55d86d946a4663a4\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-string-match-pthread-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-string-match-pthread-bin}" -c
+            "${phoenix-string-match-pthread-config}" --log-level INFO)
+  set_tests_properties("phoenix-string-match-pthread-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  add_test(
+    NAME "phoenix-string-match-pthread-v2-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-string-match-pthread-v2-bin}" -c
+            "${phoenix-string-match-pthread-v2-config}" --log-level INFO)
+  set_tests_properties("phoenix-string-match-pthread-v2-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-word-count-pthread-bin
+      "${static-musl-pthread-phoenix-root}/bin/word_count-pthread-static-musl")
+  set(phoenix-word-count-pthread-v2-bin
+      "${static-musl-pthread-phoenix-root}/bin/word_count-pthread-v2-static-musl")
+  # The manifest's 10MB word_count input can make elapsed-time stdout unstable;
+  # use a tiny deterministic input for hash-stable regression testing.
+  set(phoenix-word-count-pthread-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-small.txt")
+  set(phoenix-word-count-pthread-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-static-musl.dynamic.json")
+  set(phoenix-word-count-pthread-v2-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-v2-static-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-input}"
+    CONTENT "alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha\nbeta beta beta beta beta beta beta beta beta beta beta\ngamma gamma gamma gamma gamma gamma gamma gamma gamma gamma\ndelta delta delta delta delta delta delta delta delta\nepsilon epsilon epsilon epsilon epsilon epsilon epsilon epsilon\nzeta zeta zeta zeta zeta zeta zeta\neta eta eta eta eta eta\ntheta theta theta theta theta\niota iota iota iota\nkappa kappa kappa\nlambda lambda\nmu\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-word-count-pthread-input}\"],\n    \"expected_stdout_sha256\": \"c3d5bdc3ccd8c218db22c40ca8a7e244baa602e45e590f22691e30ca06bb4197\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-v2-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-word-count-pthread-input}\"],\n    \"expected_stdout_sha256\": \"c3d5bdc3ccd8c218db22c40ca8a7e244baa602e45e590f22691e30ca06bb4197\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-word-count-pthread-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-word-count-pthread-bin}" -c
+            "${phoenix-word-count-pthread-config}" --log-level INFO)
+  set_tests_properties("phoenix-word-count-pthread-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  add_test(
+    NAME "phoenix-word-count-pthread-v2-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-word-count-pthread-v2-bin}" -c
+            "${phoenix-word-count-pthread-v2-config}" --log-level INFO)
+  set_tests_properties("phoenix-word-count-pthread-v2-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endif()
+
+if(static-glibc-pthread-phoenix-root)
+  set(phoenix-histogram-pthread-static-glibc-bin
+      "${static-glibc-pthread-phoenix-root}/bin/histogram-pthread-static-glibc")
+  set(phoenix-histogram-pthread-static-glibc-input
+      "${static-glibc-pthread-phoenix-root}/data/histogram_datafiles/small.bmp")
+  set(phoenix-histogram-pthread-static-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-static-glibc.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-histogram-pthread-static-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-histogram-pthread-static-glibc-input}\"],\n    \"expected_stdout_sha256\": \"1db37aab2f6bfb687f45c82c8d19287b5c4495215f7129fd7d05d9658c3ae060\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-histogram-pthread-static-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-histogram-pthread-static-glibc-bin}" -c
+            "${phoenix-histogram-pthread-static-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-histogram-pthread-static-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-kmeans-pthread-static-glibc-bin
+      "${static-glibc-pthread-phoenix-root}/bin/kmeans-pthread-static-glibc")
+  set(phoenix-kmeans-pthread-static-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-kmeans-pthread-static-glibc.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-kmeans-pthread-static-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"ea912f078bf2bf965726ab22703263dc8563c1f458c7c588e67c2805b35a27f9\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-kmeans-pthread-static-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-kmeans-pthread-static-glibc-bin}" -c
+            "${phoenix-kmeans-pthread-static-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-kmeans-pthread-static-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-linear-regression-pthread-static-glibc-bin
+      "${static-glibc-pthread-phoenix-root}/bin/linear_regression-pthread-static-glibc")
+  # Keep this consistent with the static-musl pthread regression: the manifest's
+  # 50MB input is unnecessary here, and this tiny perfect-line data set gives
+  # deterministic, hash-stable stdout with ARANCINI_GUEST_CPUS=1.
+  set(phoenix-linear-regression-pthread-static-glibc-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-static-glibc-small.bin")
+  set(phoenix-linear-regression-pthread-static-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-static-glibc.dynamic.json")
+
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "from pathlib import Path; Path(r'${phoenix-linear-regression-pthread-static-glibc-input}').write_bytes(bytes([1, 2, 2, 4, 3, 6, 4, 8]))")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-linear-regression-pthread-static-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-linear-regression-pthread-static-glibc-input}\"],\n    \"expected_stdout_sha256\": \"dbecd56c39fd6c5a577c7988b0fc133e84d2ba945a88ca2fe9fd0410499aa74d\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-linear-regression-pthread-static-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-linear-regression-pthread-static-glibc-bin}" -c
+            "${phoenix-linear-regression-pthread-static-glibc-config}"
+            --log-level INFO)
+  set_tests_properties("phoenix-linear-regression-pthread-static-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-matrix-multiply-pthread-static-glibc-bin
+      "${static-glibc-pthread-phoenix-root}/bin/matrix_multiply-pthread-static-glibc")
+  set(phoenix-matrix-multiply-pthread-static-glibc-workdir
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-static-glibc-workdir")
+  set(phoenix-matrix-multiply-pthread-static-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-static-glibc.dynamic.json")
+
+  file(MAKE_DIRECTORY "${phoenix-matrix-multiply-pthread-static-glibc-workdir}")
+  configure_file(
+    "${CMAKE_SOURCE_DIR}/aarch64.exec.lds"
+    "${phoenix-matrix-multiply-pthread-static-glibc-workdir}/aarch64.exec.lds"
+    COPYONLY)
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "import pathlib; d = pathlib.Path(r'${phoenix-matrix-multiply-pthread-static-glibc-workdir}'); data = bytes(32 * 32 * 4); (d / 'matrix_file_A.txt').write_bytes(data); (d / 'matrix_file_B.txt').write_bytes(data)")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-matrix-multiply-pthread-static-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"32\"],\n    \"expected_stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-matrix-multiply-pthread-static-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-matrix-multiply-pthread-static-glibc-bin}" -c
+            "${phoenix-matrix-multiply-pthread-static-glibc-config}"
+            --log-level INFO)
+  set_tests_properties(
+    "phoenix-matrix-multiply-pthread-static-glibc:dynamic"
+    PROPERTIES TIMEOUT 180
+               WORKING_DIRECTORY
+                 "${phoenix-matrix-multiply-pthread-static-glibc-workdir}")
+
+  set(phoenix-pca-pthread-static-glibc-bin
+      "${static-glibc-pthread-phoenix-root}/bin/pca-pthread-static-glibc")
+  set(phoenix-pca-pthread-static-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-static-glibc.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-pca-pthread-static-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"13c945f40259f6e6230f714f1444e6301ae401acfe80b5259cef50f1b9d999cc\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-pca-pthread-static-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-pca-pthread-static-glibc-bin}" -c
+            "${phoenix-pca-pthread-static-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-pca-pthread-static-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-string-match-pthread-static-glibc-bin
+      "${static-glibc-pthread-phoenix-root}/bin/string_match-pthread-static-glibc")
+  # Keep this consistent with the static-musl pthread regression: the manifest's
+  # 50MB input includes elapsed-time stdout and is unnecessarily slow; this tiny
+  # deterministic input gives hash-stable stdout with ARANCINI_GUEST_CPUS=1.
+  set(phoenix-string-match-pthread-static-glibc-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-static-glibc-small.txt")
+  set(phoenix-string-match-pthread-static-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-static-glibc.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-static-glibc-input}"
+    CONTENT "Helloworld\nhowareyou\nferrari\nwhotheman\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-static-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-string-match-pthread-static-glibc-input}\"],\n    \"expected_stdout_sha256\": \"e08f600b364500045cec207460953500ae4063d16f9324ff55d86d946a4663a4\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-string-match-pthread-static-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-string-match-pthread-static-glibc-bin}" -c
+            "${phoenix-string-match-pthread-static-glibc-config}"
+            --log-level INFO)
+  set_tests_properties("phoenix-string-match-pthread-static-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-word-count-pthread-static-glibc-bin
+      "${static-glibc-pthread-phoenix-root}/bin/word_count-pthread-static-glibc")
+  # Keep this consistent with the static-musl pthread regression: the manifest's
+  # 10MB input can make elapsed-time stdout unstable; use a tiny deterministic
+  # input for hash-stable regression testing.
+  set(phoenix-word-count-pthread-static-glibc-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-static-glibc-small.txt")
+  set(phoenix-word-count-pthread-static-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-static-glibc.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-static-glibc-input}"
+    CONTENT "alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha\nbeta beta beta beta beta beta beta beta beta beta beta\ngamma gamma gamma gamma gamma gamma gamma gamma gamma gamma\ndelta delta delta delta delta delta delta delta delta\nepsilon epsilon epsilon epsilon epsilon epsilon epsilon epsilon\nzeta zeta zeta zeta zeta zeta zeta\neta eta eta eta eta eta\ntheta theta theta theta theta\niota iota iota iota\nkappa kappa kappa\nlambda lambda\nmu\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-static-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-word-count-pthread-static-glibc-input}\"],\n    \"expected_stdout_sha256\": \"c3d5bdc3ccd8c218db22c40ca8a7e244baa602e45e590f22691e30ca06bb4197\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-word-count-pthread-static-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-word-count-pthread-static-glibc-bin}" -c
+            "${phoenix-word-count-pthread-static-glibc-config}"
+            --log-level INFO)
+  set_tests_properties("phoenix-word-count-pthread-static-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endif()
+
+if(dynamic-glibc-pthread-phoenix-root)
+  set(phoenix-pthread-glibc-nlib
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pthread-glibc.nlib")
+  set(phoenix-pthread-glibc-stub-c
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pthread-glibc-stub.c")
+  set(phoenix-pthread-glibc-stub
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pthread-glibc-stub.o")
+
+  file(
+    WRITE "${phoenix-pthread-glibc-stub-c}"
+    "#define _GNU_SOURCE\n#include <sched.h>\n#include <stddef.h>\n#include <string.h>\n#include <sys/time.h>\n#include <time.h>\n#include <unistd.h>\nvoid __gmon_start__(void) {}\nint sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask) { (void)pid; memset(mask, 0, cpusetsize); if (cpusetsize >= sizeof(unsigned long)) ((unsigned long *)mask)[0] = 1ul; return 0; }\nlong sysconf(int name) { (void)name; return 1; }\nint gettimeofday(struct timeval *tv, void *tz) { (void)tz; if (tv) { tv->tv_sec = 0; tv->tv_usec = 0; } return 0; }\ntime_t time(time_t *tloc) { if (tloc) *tloc = 1; return 1; }\n")
+  execute_process(
+    COMMAND "${CMAKE_C_COMPILER}" -c "${phoenix-pthread-glibc-stub-c}" -o
+            "${phoenix-pthread-glibc-stub}")
+
+  file(
+    WRITE "${phoenix-pthread-glibc-nlib}"
+    "void __libc_start_main(u64 main, u64 argc, ptr argv, u64 init, u64 fini, u64 rtldfini, u64 stackend);\n"
+    "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
+    "void exit(i32 status);\n"
+    "void perror(ptr s);\n"
+    "ptr malloc(u64 size);\n"
+    "ptr calloc(u64 nmemb, u64 size);\n"
+    "ptr realloc(ptr p, u64 size);\n"
+    "void free(ptr p);\n"
+    "ptr memcpy(ptr dest, ptr src, u64 n);\n"
+    "ptr memmove(ptr dest, ptr src, u64 n);\n"
+    "ptr memset(ptr s, i32 c, u64 n);\n"
+    "i32 strcmp(ptr a, ptr b);\n"
+    "u64 strlen(ptr s);\n"
+    "ptr __ctype_toupper_loc();\n"
+    "i32 open(ptr path, i32 flags, i32 mode);\n"
+    "i32 fstat(i32 filedesc, ptr statbuf);\n"
+    "ptr mmap(ptr addr, u64 length, i32 prot, i32 flags, i32 filedesc, i64 offset);\n"
+    "i32 munmap(ptr addr, u64 length);\n"
+    "i32 close(i32 filedesc);\n"
+    "i64 write(i32 filedesc, ptr buf, u64 count);\n"
+    "i32 puts(ptr s);\n"
+    "i32 printf(ptr fmt, u64 a, u64 b, u64 c, u64 d);\n"
+    "i32 fprintf(ptr stream, ptr fmt, u64 a, u64 b, u64 c, u64 d);\n"
+    "i32 fputc(i32 c, ptr stream);\n"
+    "u64 fwrite(ptr ptrarg, u64 size, u64 nmemb, ptr stream);\n"
+    "i32 fflush(ptr stream);\n"
+    "i64 __isoc23_strtol(ptr nptr, ptr endptr, i32 base);\n"
+    "i32 getopt(i32 argc, ptr argv, ptr optstring);\n"
+    "void srand(u32 seed);\n"
+    "i32 rand();\n"
+    "void qsort(ptr base, u64 nmemb, u64 size, ptr compar);\n"
+    "i32 pthread_attr_init(ptr attr);\n"
+    "i32 pthread_attr_setscope(ptr attr, i32 scope);\n"
+    "i32 pthread_attr_destroy(ptr attr);\n"
+    "i32 pthread_create(ptr thread, ptr attr, ptr start_routine, ptr arg);\n"
+    "i32 pthread_join(u64 thread, ptr retval);\n"
+    "i32 pthread_mutex_init(ptr mutex, ptr attr);\n"
+    "i32 pthread_mutex_lock(ptr mutex);\n"
+    "i32 pthread_mutex_unlock(ptr mutex);\n"
+    "library \"${phoenix-pthread-glibc-stub}\";\n"
+    "void __gmon_start__();\n"
+    "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
+    "i64 sysconf(i32 name);\n"
+    "i32 gettimeofday(ptr tv, ptr tz);\n"
+    "i64 time(ptr tloc);\n")
+
+  set(phoenix-histogram-pthread-glibc-bin
+      "${dynamic-glibc-pthread-phoenix-root}/bin/histogram-pthread-v2")
+  set(phoenix-histogram-pthread-glibc-input
+      "${dynamic-glibc-pthread-phoenix-root}/data/histogram_datafiles/small.bmp")
+  set(phoenix-histogram-pthread-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-glibc.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-histogram-pthread-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pthread-glibc-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"${phoenix-histogram-pthread-glibc-input}\"],\n    \"expected_stdout_sha256\": \"1db37aab2f6bfb687f45c82c8d19287b5c4495215f7129fd7d05d9658c3ae060\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_test(
+    NAME "phoenix-histogram-pthread-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-histogram-pthread-glibc-bin}" -c
+            "${phoenix-histogram-pthread-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-histogram-pthread-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-kmeans-pthread-glibc-bin
+      "${dynamic-glibc-pthread-phoenix-root}/bin/kmeans-pthread-v2")
+  set(phoenix-kmeans-pthread-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-kmeans-pthread-glibc.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-kmeans-pthread-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pthread-glibc-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"2380541bb7b4836088c7b536e68c9109b5216405f50172659cf3785ee29018be\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_test(
+    NAME "phoenix-kmeans-pthread-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-kmeans-pthread-glibc-bin}" -c
+            "${phoenix-kmeans-pthread-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-kmeans-pthread-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-linear-regression-pthread-glibc-bin
+      "${dynamic-glibc-pthread-phoenix-root}/bin/linear_regression-pthread-v2")
+  set(phoenix-linear-regression-pthread-glibc-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-glibc-small.bin")
+  set(phoenix-linear-regression-pthread-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-glibc.dynamic.json")
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "from pathlib import Path; Path(r'${phoenix-linear-regression-pthread-glibc-input}').write_bytes(bytes([1, 2, 2, 4, 3, 6, 4, 8]))")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-linear-regression-pthread-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pthread-glibc-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"${phoenix-linear-regression-pthread-glibc-input}\"],\n    \"expected_stdout_sha256\": \"dbecd56c39fd6c5a577c7988b0fc133e84d2ba945a88ca2fe9fd0410499aa74d\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_test(
+    NAME "phoenix-linear-regression-pthread-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-linear-regression-pthread-glibc-bin}" -c
+            "${phoenix-linear-regression-pthread-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-linear-regression-pthread-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-matrix-multiply-pthread-glibc-bin
+      "${dynamic-glibc-pthread-phoenix-root}/bin/matrix_multiply-pthread-v2")
+  set(phoenix-matrix-multiply-pthread-glibc-workdir
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-glibc-workdir")
+  set(phoenix-matrix-multiply-pthread-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-glibc.dynamic.json")
+  file(MAKE_DIRECTORY "${phoenix-matrix-multiply-pthread-glibc-workdir}")
+  configure_file(
+    "${CMAKE_SOURCE_DIR}/aarch64.exec.lds"
+    "${phoenix-matrix-multiply-pthread-glibc-workdir}/aarch64.exec.lds"
+    COPYONLY)
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "import pathlib; d = pathlib.Path(r'${phoenix-matrix-multiply-pthread-glibc-workdir}'); data = bytes(32 * 32 * 4); (d / 'matrix_file_A.txt').write_bytes(data); (d / 'matrix_file_B.txt').write_bytes(data)")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-matrix-multiply-pthread-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pthread-glibc-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"32\"],\n    \"expected_stdout_sha256\": \"f0b05f66263dd77dfeafbcf7ff7704c56c913e7eb730e44385f22b6b79cbe1b3\",\n    \"expected_stderr_sha256\": \"23aab5596dacb17bb8e82fa96b660b092e5739383bc8fcecd731db46448e2f71\"\n}\n")
+  add_test(
+    NAME "phoenix-matrix-multiply-pthread-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-matrix-multiply-pthread-glibc-bin}" -c
+            "${phoenix-matrix-multiply-pthread-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-matrix-multiply-pthread-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY
+                                    "${phoenix-matrix-multiply-pthread-glibc-workdir}")
+
+  set(phoenix-pca-pthread-glibc-bin
+      "${dynamic-glibc-pthread-phoenix-root}/bin/pca-pthread-v2")
+  set(phoenix-pca-pthread-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-glibc.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-pca-pthread-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pthread-glibc-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"a21aa5473551d2d8c2675b4d81a38ea270e19007e218c6487d90b0ae5b255dd1\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_test(
+    NAME "phoenix-pca-pthread-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-pca-pthread-glibc-bin}" -c
+            "${phoenix-pca-pthread-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-pca-pthread-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-string-match-pthread-glibc-bin
+      "${dynamic-glibc-pthread-phoenix-root}/bin/string_match-pthread-v2")
+  set(phoenix-string-match-pthread-glibc-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-glibc-small.txt")
+  set(phoenix-string-match-pthread-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-glibc.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-glibc-input}"
+    CONTENT "Helloworld\nhowareyou\nferrari\nwhotheman\n")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pthread-glibc-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"${phoenix-string-match-pthread-glibc-input}\"],\n    \"expected_stdout_sha256\": \"e08f600b364500045cec207460953500ae4063d16f9324ff55d86d946a4663a4\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_test(
+    NAME "phoenix-string-match-pthread-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-string-match-pthread-glibc-bin}" -c
+            "${phoenix-string-match-pthread-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-string-match-pthread-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-word-count-pthread-glibc-bin
+      "${dynamic-glibc-pthread-phoenix-root}/bin/word_count-pthread-v2")
+  set(phoenix-word-count-pthread-glibc-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-glibc-small.txt")
+  set(phoenix-word-count-pthread-glibc-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-glibc.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-glibc-input}"
+    CONTENT "alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha\nbeta beta beta beta beta beta beta beta beta beta beta\ngamma gamma gamma gamma gamma gamma gamma gamma gamma gamma\ndelta delta delta delta delta delta delta delta delta\nepsilon epsilon epsilon epsilon epsilon epsilon epsilon epsilon\nzeta zeta zeta zeta zeta zeta zeta\neta eta eta eta eta eta\ntheta theta theta theta theta\niota iota iota iota\nkappa kappa kappa\nlambda lambda\nmu\n")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-glibc-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pthread-glibc-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"${phoenix-word-count-pthread-glibc-input}\"],\n    \"expected_stdout_sha256\": \"08f9cb4ae364132df81fc14b8a95bd75358f048e860915d6f7c66fa453e046bd\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_test(
+    NAME "phoenix-word-count-pthread-glibc:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-word-count-pthread-glibc-bin}" -c
+            "${phoenix-word-count-pthread-glibc-config}" --log-level INFO)
+  set_tests_properties("phoenix-word-count-pthread-glibc:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endif()
+
+if(dynamic-musl-pthread-phoenix-root)
+  set(phoenix-histogram-pthread-musl-bin
+      "${dynamic-musl-pthread-phoenix-root}/bin/histogram-pthread-v2")
+  set(phoenix-histogram-pthread-musl-input
+      "${dynamic-musl-pthread-phoenix-root}/data/histogram_datafiles/small.bmp")
+  set(phoenix-histogram-pthread-musl-nlib
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-musl.nlib")
+  set(phoenix-histogram-pthread-musl-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-musl.dynamic.json")
+
+  file(
+    WRITE "${phoenix-histogram-pthread-musl-nlib}"
+    "void __libc_start_main(u64 main, u64 argc, ptr argv, u64 init, u64 fini, u64 rtldfini, u64 stackend);\n"
+    "i32 open(ptr path, i32 flags, i32 mode);\n"
+    "i32 fstat(i32 filedesc, ptr statbuf);\n"
+    "ptr mmap(ptr addr, u64 length, i32 prot, i32 flags, i32 filedesc, i64 offset);\n"
+    "i32 munmap(ptr addr, u64 length);\n"
+    "i32 close(i32 filedesc);\n"
+    "i32 printf(ptr fmt, u64 a, u64 b);\n"
+    "i32 puts(ptr s);\n"
+    "u64 fwrite(ptr ptrarg, u64 size, u64 nmemb, ptr stream);\n"
+    "i32 fprintf(ptr stream, ptr fmt, u64 a, u64 b);\n"
+    "void perror(ptr s);\n"
+    "void exit(i32 status);\n"
+    "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
+    "ptr malloc(u64 size);\n"
+    "ptr calloc(u64 nmemb, u64 size);\n"
+    "void free(ptr p);\n"
+    "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
+    "i64 sysconf(i32 name);\n"
+    "i32 pthread_attr_init(ptr attr);\n"
+    "i32 pthread_attr_setscope(ptr attr, i32 scope);\n"
+    "i32 pthread_create(ptr thread, ptr attr, ptr start_routine, ptr arg);\n"
+    "i32 pthread_join(u64 thread, ptr retval);\n"
+    "i32 pthread_attr_destroy(ptr attr);\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-histogram-pthread-musl-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-histogram-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"${phoenix-histogram-pthread-musl-input}\"],\n    \"expected_stdout_sha256\": \"0612ff0e799fa2c008311341ef5afa93242089db8c5fa2eb1a5373697d65212d\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-histogram-pthread-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-histogram-pthread-musl-bin}" -c
+            "${phoenix-histogram-pthread-musl-config}" --log-level INFO)
+  set_tests_properties("phoenix-histogram-pthread-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-kmeans-pthread-musl-bin
+      "${dynamic-musl-pthread-phoenix-root}/bin/kmeans-pthread-v2")
+  set(phoenix-kmeans-pthread-musl-nlib
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-kmeans-pthread-musl.nlib")
+  set(phoenix-kmeans-pthread-musl-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-kmeans-pthread-musl.dynamic.json")
+
+  file(
+    WRITE "${phoenix-kmeans-pthread-musl-nlib}"
+    "void __libc_start_main(u64 main, u64 argc, ptr argv, u64 init, u64 fini, u64 rtldfini, u64 stackend);\n"
+    "void free(ptr p);\n"
+    "ptr malloc(u64 size);\n"
+    "i32 puts(ptr s);\n"
+    "i32 printf(ptr fmt, u64 a, u64 b, u64 c, u64 d);\n"
+    "i32 fprintf(ptr stream, ptr fmt, u64 a, u64 b, u64 c);\n"
+    "i32 fputc(i32 c, ptr stream);\n"
+    "u64 fwrite(ptr ptrarg, u64 size, u64 nmemb, ptr stream);\n"
+    "i32 atoi(ptr nptr);\n"
+    "i32 getopt(i32 argc, ptr argv, ptr optstring);\n"
+    "ptr memset(ptr s, i32 c, u64 n);\n"
+    "void perror(ptr s);\n"
+    "void exit(i32 status);\n"
+    "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
+    "i32 rand();\n"
+    "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
+    "i64 sysconf(i32 name);\n"
+    "i32 pthread_attr_init(ptr attr);\n"
+    "i32 pthread_attr_setscope(ptr attr, i32 scope);\n"
+    "i32 pthread_create(ptr thread, ptr attr, ptr start_routine, ptr arg);\n"
+    "i32 pthread_join(u64 thread, ptr retval);\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-kmeans-pthread-musl-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-kmeans-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"2380541bb7b4836088c7b536e68c9109b5216405f50172659cf3785ee29018be\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-kmeans-pthread-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-kmeans-pthread-musl-bin}" -c
+            "${phoenix-kmeans-pthread-musl-config}" --log-level INFO)
+  set_tests_properties("phoenix-kmeans-pthread-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-linear-regression-pthread-musl-bin
+      "${dynamic-musl-pthread-phoenix-root}/bin/linear_regression-pthread-v2")
+  # Use a tiny deterministic binary POINT_T input, matching the static pthread
+  # regression style; the manifest's 50MB data is unnecessary for this check.
+  set(phoenix-linear-regression-pthread-musl-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-musl-small.bin")
+  set(phoenix-linear-regression-pthread-musl-cpu-stub-c
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-musl-cpu-stub.c")
+  set(phoenix-linear-regression-pthread-musl-cpu-stub
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-musl-cpu-stub.o")
+  set(phoenix-linear-regression-pthread-musl-nlib
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-musl.nlib")
+  set(phoenix-linear-regression-pthread-musl-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-musl.dynamic.json")
+
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "from pathlib import Path; Path(r'${phoenix-linear-regression-pthread-musl-input}').write_bytes(bytes([1, 2, 2, 4, 3, 6, 4, 8]))")
+  file(
+    WRITE "${phoenix-linear-regression-pthread-musl-cpu-stub-c}"
+    "#define _GNU_SOURCE\n#include <sched.h>\n#include <stddef.h>\n#include <string.h>\n#include <unistd.h>\nint sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask) { (void)pid; memset(mask, 0, cpusetsize); if (cpusetsize >= sizeof(unsigned long)) ((unsigned long *)mask)[0] = 1ul; return 0; }\nlong sysconf(int name) { (void)name; return 1; }\n")
+  execute_process(
+    COMMAND "${CMAKE_C_COMPILER}" -c
+            "${phoenix-linear-regression-pthread-musl-cpu-stub-c}" -o
+            "${phoenix-linear-regression-pthread-musl-cpu-stub}")
+
+  file(
+    WRITE "${phoenix-linear-regression-pthread-musl-nlib}"
+    "void __libc_start_main(u64 main, u64 argc, ptr argv, u64 init, u64 fini, u64 rtldfini, u64 stackend);\n"
+    "i32 open(ptr path, i32 flags, i32 mode);\n"
+    "i32 fstat(i32 filedesc, ptr statbuf);\n"
+    "ptr mmap(ptr addr, u64 length, i32 prot, i32 flags, i32 filedesc, i64 offset);\n"
+    "i32 munmap(ptr addr, u64 length);\n"
+    "i32 close(i32 filedesc);\n"
+    "i32 printf(ptr fmt, u64 a, u64 b, u64 c, u64 d);\n"
+    "i32 puts(ptr s);\n"
+    "void perror(ptr s);\n"
+    "void exit(i32 status);\n"
+    "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
+    "ptr calloc(u64 nmemb, u64 size);\n"
+    "void free(ptr p);\n"
+    "library \"${phoenix-linear-regression-pthread-musl-cpu-stub}\";\n"
+    "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
+    "i64 sysconf(i32 name);\n"
+    "i32 pthread_attr_init(ptr attr);\n"
+    "i32 pthread_attr_setscope(ptr attr, i32 scope);\n"
+    "i32 pthread_create(ptr thread, ptr attr, ptr start_routine, ptr arg);\n"
+    "i32 pthread_join(u64 thread, ptr retval);\n"
+    "i32 pthread_attr_destroy(ptr attr);\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-linear-regression-pthread-musl-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-linear-regression-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"${phoenix-linear-regression-pthread-musl-input}\"],\n    \"expected_stdout_sha256\": \"dbecd56c39fd6c5a577c7988b0fc133e84d2ba945a88ca2fe9fd0410499aa74d\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-linear-regression-pthread-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-linear-regression-pthread-musl-bin}" -c
+            "${phoenix-linear-regression-pthread-musl-config}" --log-level INFO)
+  set_tests_properties("phoenix-linear-regression-pthread-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-matrix-multiply-pthread-musl-bin
+      "${dynamic-musl-pthread-phoenix-root}/bin/matrix_multiply-pthread-v2")
+  set(phoenix-matrix-multiply-pthread-musl-workdir
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-musl-workdir")
+  set(phoenix-matrix-multiply-pthread-musl-cpu-stub-c
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-musl-cpu-stub.c")
+  set(phoenix-matrix-multiply-pthread-musl-cpu-stub
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-musl-cpu-stub.o")
+  set(phoenix-matrix-multiply-pthread-musl-nlib
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-musl.nlib")
+  set(phoenix-matrix-multiply-pthread-musl-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-pthread-musl.dynamic.json")
+
+  file(MAKE_DIRECTORY "${phoenix-matrix-multiply-pthread-musl-workdir}")
+  configure_file(
+    "${CMAKE_SOURCE_DIR}/aarch64.exec.lds"
+    "${phoenix-matrix-multiply-pthread-musl-workdir}/aarch64.exec.lds"
+    COPYONLY)
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "import pathlib; d = pathlib.Path(r'${phoenix-matrix-multiply-pthread-musl-workdir}'); data = bytes(32 * 32 * 4); (d / 'matrix_file_A.txt').write_bytes(data); (d / 'matrix_file_B.txt').write_bytes(data)")
+  file(
+    WRITE "${phoenix-matrix-multiply-pthread-musl-cpu-stub-c}"
+    "#define _GNU_SOURCE\n#include <sched.h>\n#include <stddef.h>\n#include <string.h>\n#include <sys/time.h>\n#include <unistd.h>\nint sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask) { (void)pid; memset(mask, 0, cpusetsize); if (cpusetsize >= sizeof(unsigned long)) ((unsigned long *)mask)[0] = 1ul; return 0; }\nlong sysconf(int name) { (void)name; return 1; }\nint gettimeofday(struct timeval *tv, void *tz) { (void)tz; if (tv) { tv->tv_sec = 0; tv->tv_usec = 0; } return 0; }\n")
+  execute_process(
+    COMMAND "${CMAKE_C_COMPILER}" -c
+            "${phoenix-matrix-multiply-pthread-musl-cpu-stub-c}" -o
+            "${phoenix-matrix-multiply-pthread-musl-cpu-stub}")
+
+  file(
+    WRITE "${phoenix-matrix-multiply-pthread-musl-nlib}"
+    "void __libc_start_main(u64 main, u64 argc, ptr argv, u64 init, u64 fini, u64 rtldfini, u64 stackend);\n"
+    "i32 open(ptr path, i32 flags, i32 mode);\n"
+    "i32 fstat(i32 filedesc, ptr statbuf);\n"
+    "ptr mmap(ptr addr, u64 length, i32 prot, i32 flags, i32 filedesc, i64 offset);\n"
+    "i32 munmap(ptr addr, u64 length);\n"
+    "i32 close(i32 filedesc);\n"
+    "i64 write(i32 filedesc, ptr buf, u64 count);\n"
+    "i32 printf(ptr fmt, u64 a, u64 b, u64 c, u64 d);\n"
+    "i32 fprintf(ptr stream, ptr fmt, u64 a, u64 b, u64 c);\n"
+    "i32 puts(ptr s);\n"
+    "i32 fflush(ptr stream);\n"
+    "i32 fputc(i32 c, ptr stream);\n"
+    "u64 fwrite(ptr ptrarg, u64 size, u64 nmemb, ptr stream);\n"
+    "i32 atoi(ptr nptr);\n"
+    "ptr memcpy(ptr dest, ptr src, u64 n);\n"
+    "ptr memset(ptr s, i32 c, u64 n);\n"
+    "void srand(u32 seed);\n"
+    "i32 rand();\n"
+    "i64 time(ptr tloc);\n"
+    "void perror(ptr s);\n"
+    "void exit(i32 status);\n"
+    "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
+    "ptr malloc(u64 size);\n"
+    "void free(ptr p);\n"
+    "library \"${phoenix-matrix-multiply-pthread-musl-cpu-stub}\";\n"
+    "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
+    "i64 sysconf(i32 name);\n"
+    "i32 gettimeofday(ptr tv, ptr tz);\n"
+    "i32 pthread_attr_init(ptr attr);\n"
+    "i32 pthread_attr_setscope(ptr attr, i32 scope);\n"
+    "i32 pthread_create(ptr thread, ptr attr, ptr start_routine, ptr arg);\n"
+    "i32 pthread_join(u64 thread, ptr retval);\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-matrix-multiply-pthread-musl-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-matrix-multiply-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"32\"],\n    \"expected_stdout_sha256\": \"f0b05f66263dd77dfeafbcf7ff7704c56c913e7eb730e44385f22b6b79cbe1b3\",\n    \"expected_stderr_sha256\": \"23aab5596dacb17bb8e82fa96b660b092e5739383bc8fcecd731db46448e2f71\"\n}\n")
+
+  add_test(
+    NAME "phoenix-matrix-multiply-pthread-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-matrix-multiply-pthread-musl-bin}" -c
+            "${phoenix-matrix-multiply-pthread-musl-config}" --log-level INFO)
+  set_tests_properties("phoenix-matrix-multiply-pthread-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY
+                                    "${phoenix-matrix-multiply-pthread-musl-workdir}")
+
+  set(phoenix-pca-pthread-musl-bin
+      "${dynamic-musl-pthread-phoenix-root}/bin/pca-pthread-v2")
+  set(phoenix-pca-pthread-musl-nlib
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-musl.nlib")
+  set(phoenix-pca-pthread-musl-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-musl.dynamic.json")
+
+  file(
+    WRITE "${phoenix-pca-pthread-musl-nlib}"
+    "void __libc_start_main(u64 main, u64 argc, ptr argv, u64 init, u64 fini, u64 rtldfini, u64 stackend);\n"
+    "ptr malloc(u64 size);\n"
+    "void free(ptr p);\n"
+    "i32 puts(ptr s);\n"
+    "i32 printf(ptr fmt, u64 a, u64 b, u64 c, u64 d);\n"
+    "i32 fprintf(ptr stream, ptr fmt, u64 a, u64 b, u64 c);\n"
+    "i32 fputc(i32 c, ptr stream);\n"
+    "i32 atoi(ptr nptr);\n"
+    "i32 getopt(i32 argc, ptr argv, ptr optstring);\n"
+    "void perror(ptr s);\n"
+    "void exit(i32 status);\n"
+    "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
+    "i32 rand();\n"
+    "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
+    "i64 sysconf(i32 name);\n"
+    "i32 pthread_attr_init(ptr attr);\n"
+    "i32 pthread_attr_setscope(ptr attr, i32 scope);\n"
+    "i32 pthread_create(ptr thread, ptr attr, ptr start_routine, ptr arg);\n"
+    "i32 pthread_join(u64 thread, ptr retval);\n"
+    "i32 pthread_mutex_init(ptr mutex, ptr attr);\n"
+    "i32 pthread_mutex_lock(ptr mutex);\n"
+    "i32 pthread_mutex_unlock(ptr mutex);\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-pca-pthread-musl-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pca-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"deb79f46e45c17a2946468ba93c4fa8ce7bcf202019ef6bc359001c8e3c37da5\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-pca-pthread-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-pca-pthread-musl-bin}" -c
+            "${phoenix-pca-pthread-musl-config}" --log-level INFO)
+  set_tests_properties("phoenix-pca-pthread-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-string-match-pthread-musl-bin
+      "${dynamic-musl-pthread-phoenix-root}/bin/string_match-pthread-v2")
+  # Match the static pthread regression input; the manifest's 50MB input makes
+  # elapsed-time stdout slow and less useful for this targeted dynamic check.
+  set(phoenix-string-match-pthread-musl-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-musl-small.txt")
+  set(phoenix-string-match-pthread-musl-cpu-stub-c
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-musl-cpu-stub.c")
+  set(phoenix-string-match-pthread-musl-cpu-stub
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-musl-cpu-stub.o")
+  set(phoenix-string-match-pthread-musl-nlib
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-musl.nlib")
+  set(phoenix-string-match-pthread-musl-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-pthread-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-musl-input}"
+    CONTENT "Helloworld\nhowareyou\nferrari\nwhotheman\n")
+  file(
+    WRITE "${phoenix-string-match-pthread-musl-cpu-stub-c}"
+    "#define _GNU_SOURCE\n#include <sched.h>\n#include <stddef.h>\n#include <string.h>\n#include <sys/time.h>\n#include <unistd.h>\nint sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask) { (void)pid; memset(mask, 0, cpusetsize); if (cpusetsize >= sizeof(unsigned long)) ((unsigned long *)mask)[0] = 1ul; return 0; }\nlong sysconf(int name) { (void)name; return 1; }\nint gettimeofday(struct timeval *tv, void *tz) { (void)tz; if (tv) { tv->tv_sec = 0; tv->tv_usec = 0; } return 0; }\n")
+  execute_process(
+    COMMAND "${CMAKE_C_COMPILER}" -c
+            "${phoenix-string-match-pthread-musl-cpu-stub-c}" -o
+            "${phoenix-string-match-pthread-musl-cpu-stub}")
+
+  file(
+    WRITE "${phoenix-string-match-pthread-musl-nlib}"
+    "void __libc_start_main(u64 main, u64 argc, ptr argv, u64 init, u64 fini, u64 rtldfini, u64 stackend);\n"
+    "i32 open(ptr path, i32 flags, i32 mode);\n"
+    "i32 fstat(i32 filedesc, ptr statbuf);\n"
+    "ptr mmap(ptr addr, u64 length, i32 prot, i32 flags, i32 filedesc, i64 offset);\n"
+    "i32 munmap(ptr addr, u64 length);\n"
+    "i32 close(i32 filedesc);\n"
+    "i32 printf(ptr fmt, u64 a, u64 b);\n"
+    "i32 fprintf(ptr stream, ptr fmt, u64 a, u64 b);\n"
+    "i32 puts(ptr s);\n"
+    "void perror(ptr s);\n"
+    "void exit(i32 status);\n"
+    "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
+    "void free(ptr p);\n"
+    "ptr malloc(u64 size);\n"
+    "ptr calloc(u64 nmemb, u64 size);\n"
+    "i32 strcmp(ptr s1, ptr s2);\n"
+    "u64 strlen(ptr s);\n"
+    "void bzero(ptr s, u64 n);\n"
+    "void srand(u32 seed);\n"
+    "i64 time(ptr tloc);\n"
+    "library \"${phoenix-string-match-pthread-musl-cpu-stub}\";\n"
+    "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
+    "i64 sysconf(i32 name);\n"
+    "i32 gettimeofday(ptr tv, ptr tz);\n"
+    "i32 pthread_attr_init(ptr attr);\n"
+    "i32 pthread_attr_setscope(ptr attr, i32 scope);\n"
+    "i32 pthread_create(ptr thread, ptr attr, ptr start_routine, ptr arg);\n"
+    "i32 pthread_join(u64 thread, ptr retval);\n"
+    "i32 pthread_attr_destroy(ptr attr);\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-pthread-musl-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-string-match-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"${phoenix-string-match-pthread-musl-input}\"],\n    \"expected_stdout_sha256\": \"e08f600b364500045cec207460953500ae4063d16f9324ff55d86d946a4663a4\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-string-match-pthread-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-string-match-pthread-musl-bin}" -c
+            "${phoenix-string-match-pthread-musl-config}" --log-level INFO)
+  set_tests_properties("phoenix-string-match-pthread-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-word-count-pthread-musl-bin
+      "${dynamic-musl-pthread-phoenix-root}/bin/word_count-pthread-v2")
+  # Match the static pthread regression input; the manifest's 10MB input makes
+  # elapsed-time stdout slow and less useful for this targeted dynamic check.
+  set(phoenix-word-count-pthread-musl-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-musl-small.txt")
+  set(phoenix-word-count-pthread-musl-time-stub-c
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-musl-time-stub.c")
+  set(phoenix-word-count-pthread-musl-time-stub
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-musl-time-stub.o")
+  set(phoenix-word-count-pthread-musl-nlib
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-musl.nlib")
+  set(phoenix-word-count-pthread-musl-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-pthread-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-musl-input}"
+    CONTENT "alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha\nbeta beta beta beta beta beta beta beta beta beta beta\ngamma gamma gamma gamma gamma gamma gamma gamma gamma gamma\ndelta delta delta delta delta delta delta delta delta\nepsilon epsilon epsilon epsilon epsilon epsilon epsilon epsilon\nzeta zeta zeta zeta zeta zeta zeta\neta eta eta eta eta eta\ntheta theta theta theta theta\niota iota iota iota\nkappa kappa kappa\nlambda lambda\nmu\n")
+  file(
+    WRITE "${phoenix-word-count-pthread-musl-time-stub-c}"
+    "#define _GNU_SOURCE\n#include <sched.h>\n#include <stddef.h>\n#include <string.h>\n#include <sys/time.h>\n#include <unistd.h>\nint sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask) { (void)pid; memset(mask, 0, cpusetsize); if (cpusetsize >= sizeof(unsigned long)) ((unsigned long *)mask)[0] = 1ul; return 0; }\nlong sysconf(int name) { (void)name; return 1; }\nint gettimeofday(struct timeval *tv, void *tz) { (void)tz; if (tv) { tv->tv_sec = 0; tv->tv_usec = 0; } return 0; }\n")
+  execute_process(
+    COMMAND "${CMAKE_C_COMPILER}" -c
+            "${phoenix-word-count-pthread-musl-time-stub-c}" -o
+            "${phoenix-word-count-pthread-musl-time-stub}")
+
+  file(
+    WRITE "${phoenix-word-count-pthread-musl-nlib}"
+    "void __libc_start_main(u64 main, u64 argc, ptr argv, u64 init, u64 fini, u64 rtldfini, u64 stackend);\n"
+    "void free(ptr p);\n"
+    "ptr malloc(u64 size);\n"
+    "ptr realloc(ptr p, u64 size);\n"
+    "ptr memcpy(ptr dest, ptr src, u64 n);\n"
+    "ptr memmove(ptr dest, ptr src, u64 n);\n"
+    "i32 strcmp(ptr a, ptr b);\n"
+    "i32 puts(ptr s);\n"
+    "i32 printf(ptr fmt, u64 a, u64 b, u64 c, u64 d);\n"
+    "i32 fprintf(ptr stream, ptr fmt, u64 a, u64 b, u64 c);\n"
+    "u64 fwrite(ptr ptrarg, u64 size, u64 nmemb, ptr stream);\n"
+    "i32 open(ptr path, i32 flags, i32 mode);\n"
+    "i32 fstat(i32 filedesc, ptr statbuf);\n"
+    "ptr mmap(ptr addr, u64 length, i32 prot, i32 flags, i32 filedesc, i64 offset);\n"
+    "i32 munmap(ptr addr, u64 length);\n"
+    "i32 close(i32 filedesc);\n"
+    "i32 atoi(ptr nptr);\n"
+    "i32 toupper(i32 c);\n"
+    "void perror(ptr s);\n"
+    "void exit(i32 status);\n"
+    "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
+    "void qsort(ptr base, u64 nmemb, u64 size, ptr compar);\n"
+    "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
+    "i64 sysconf(i32 name);\n"
+    "library \"${phoenix-word-count-pthread-musl-time-stub}\";\n"
+    "i32 gettimeofday(ptr tv, ptr tz);\n"
+    "i32 pthread_attr_init(ptr attr);\n"
+    "i32 pthread_attr_setscope(ptr attr, i32 scope);\n"
+    "i32 pthread_create(ptr thread, ptr attr, ptr start_routine, ptr arg);\n"
+    "i32 pthread_join(u64 thread, ptr retval);\n")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-pthread-musl-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-word-count-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"${phoenix-word-count-pthread-musl-input}\"],\n    \"expected_stdout_sha256\": \"08f9cb4ae364132df81fc14b8a95bd75358f048e860915d6f7c66fa453e046bd\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-word-count-pthread-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-word-count-pthread-musl-bin}" -c
+            "${phoenix-word-count-pthread-musl-config}" --log-level INFO)
+  set_tests_properties("phoenix-word-count-pthread-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()

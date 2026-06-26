@@ -165,6 +165,7 @@ static std::unique_ptr<translator> get_translator(ir_builder &builder,
     case XED_ICLASS_PCMPEQB:
     case XED_ICLASS_PCMPEQW:
     case XED_ICLASS_PCMPEQD:
+    case XED_ICLASS_PMINUB:
     case XED_ICLASS_PCMPGTB:
     case XED_ICLASS_PCMPGTW:
     case XED_ICLASS_PCMPGTD:
@@ -283,10 +284,12 @@ static std::unique_ptr<translator> get_translator(ir_builder &builder,
     case XED_ICLASS_XCHG:
     case XED_ICLASS_CMPXCHG_LOCK:
     case XED_ICLASS_ADD_LOCK:
+    case XED_ICLASS_SUB_LOCK:
     case XED_ICLASS_AND_LOCK:
     case XED_ICLASS_OR_LOCK:
     case XED_ICLASS_INC_LOCK:
     case XED_ICLASS_DEC_LOCK:
+    case XED_ICLASS_BTS_LOCK:
         return std::make_unique<atomic_translator>(builder);
 
     case XED_ICLASS_XGETBV:
@@ -562,6 +565,124 @@ void x86_input_arch::gen_wrapper(ir_builder &builder,
             args);
         builder.insert_write_pc(builder.insert_constant_u64(0)->val(),
                                 br_type::br);
+        builder.end_packet();
+        builder.end_chunk();
+        return;
+    }
+
+    if (func.fname == "pthread_create") {
+        auto thread = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RDI),
+            static_cast<unsigned long>(reg_idx::RDI), "RDI");
+        auto start = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RDX),
+            static_cast<unsigned long>(reg_idx::RDX), "RDX");
+        auto arg = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RCX),
+            static_cast<unsigned long>(reg_idx::RCX), "RCX");
+        auto rsp = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RSP),
+            static_cast<unsigned long>(reg_idx::RSP), "RSP");
+        auto new_rsp = builder.insert_sub(
+            rsp->val(), builder.insert_constant_u64(8)->val());
+        auto synthetic_ret = builder.insert_constant_u64(0x70000000ffe0ull);
+
+        builder.insert_write_mem(
+            thread->val(), builder.insert_constant_u64(1)->val());
+        builder.insert_write_mem(new_rsp->val(), synthetic_ret->val());
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RSP),
+                                 static_cast<unsigned long>(reg_idx::RSP),
+                                 "RSP", new_rsp->val());
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RDI),
+                                 static_cast<unsigned long>(reg_idx::RDI),
+                                 "RDI", arg->val());
+        builder.insert_write_pc(start->val(), br_type::br);
+        builder.end_packet();
+        builder.end_chunk();
+        return;
+    }
+
+    if (func.fname == "__pthread_create_return") {
+        builder.insert_write_reg(
+            static_cast<unsigned long>(reg_offsets::RAX),
+            static_cast<unsigned long>(reg_idx::RAX), "RAX",
+            builder.insert_constant_u64(0)->val());
+
+        builder.end_packet();
+        builder.begin_packet(1);
+        auto rsp = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RSP),
+            static_cast<unsigned long>(reg_idx::RSP), "RSP");
+        auto retaddr = builder.insert_read_mem(value_type::u64(), rsp->val());
+        auto new_rsp = builder.insert_add(
+            rsp->val(), builder.insert_constant_u64(8)->val());
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RSP),
+                                 static_cast<unsigned long>(reg_idx::RSP),
+                                 "RSP", new_rsp->val());
+        builder.insert_write_pc(retaddr->val(), br_type::ret);
+        builder.end_packet();
+        builder.end_chunk();
+        return;
+    }
+
+    if (func.fname == "pthread_join") {
+        auto retval = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RSI),
+            static_cast<unsigned long>(reg_idx::RSI), "RSI");
+        auto retval_is_null = builder.insert_cmpeq(
+            retval->val(), builder.insert_constant_u64(0)->val());
+        auto skip_retval_write = (cond_br_node *)builder.insert_cond_br(
+            retval_is_null->val(), nullptr);
+        builder.insert_write_mem(retval->val(),
+                                 builder.insert_constant_u64(0)->val());
+        auto retval_done = builder.insert_label("pthread_join_retval_done");
+        skip_retval_write->add_br_target(retval_done);
+
+        builder.insert_write_reg(
+            static_cast<unsigned long>(reg_offsets::RAX),
+            static_cast<unsigned long>(reg_idx::RAX), "RAX",
+            builder.insert_constant_u64(0)->val());
+        builder.end_packet();
+
+        builder.begin_packet(1);
+        auto rsp = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RSP),
+            static_cast<unsigned long>(reg_idx::RSP), "RSP");
+        auto retaddr = builder.insert_read_mem(value_type::u64(), rsp->val());
+        auto new_rsp = builder.insert_add(
+            rsp->val(), builder.insert_constant_u64(8)->val());
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RSP),
+                                 static_cast<unsigned long>(reg_idx::RSP),
+                                 "RSP", new_rsp->val());
+        builder.insert_write_pc(retaddr->val(), br_type::ret);
+        builder.end_packet();
+        builder.end_chunk();
+        return;
+    }
+
+    if (func.fname == "pthread_attr_init" ||
+        func.fname == "pthread_attr_setscope" ||
+        func.fname == "pthread_attr_destroy" ||
+        func.fname == "pthread_mutex_init" ||
+        func.fname == "pthread_mutex_lock" ||
+        func.fname == "pthread_mutex_unlock") {
+        builder.insert_write_reg(
+            static_cast<unsigned long>(reg_offsets::RAX),
+            static_cast<unsigned long>(reg_idx::RAX), "RAX",
+            builder.insert_constant_u64(0)->val());
+        builder.end_packet();
+
+        builder.begin_packet(1);
+        auto rsp = builder.insert_read_reg(
+            value_type::u64(), static_cast<unsigned long>(reg_offsets::RSP),
+            static_cast<unsigned long>(reg_idx::RSP), "RSP");
+        auto retaddr = builder.insert_read_mem(value_type::u64(), rsp->val());
+        auto new_rsp = builder.insert_add(
+            rsp->val(), builder.insert_constant_u64(8)->val());
+        builder.insert_write_reg(static_cast<unsigned long>(reg_offsets::RSP),
+                                 static_cast<unsigned long>(reg_idx::RSP),
+                                 "RSP", new_rsp->val());
+        builder.insert_write_pc(retaddr->val(), br_type::ret);
         builder.end_packet();
         builder.end_chunk();
         return;

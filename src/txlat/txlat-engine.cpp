@@ -247,6 +247,13 @@ void txlat_engine::translate(
             0x70000000fff0ull,
             "__arancini____libc_start_main_return_wrapper");
     }
+    if (nlibs.has_value() && nlibs->native_functions().count("pthread_create")) {
+        nlib_function ret{"__pthread_create_return", "",
+                          function_type(value_type::v(), {})};
+        oe->add_chunk(generate_wrapper(*ia, ret));
+        oe->add_function_decl(0x70000000ffe0ull,
+                              "__arancini____pthread_create_return_wrapper");
+    }
 
     // Generate decls for external functions found in the relocation table
 

@@ -66,6 +66,17 @@ void atomic_translator::do_translate() {
         break;
     }
 
+    case XED_ICLASS_SUB_LOCK: {
+        auto dst = compute_address(0);
+        auto src = read_operand(1);
+
+        auto res = builder().insert_atomic_binop(binary_atomic_op::sub,
+                                                 dst->val(), src->val());
+        write_flags(res, flag_op::update, flag_op::update, flag_op::update,
+                    flag_op::update, flag_op::update, flag_op::update);
+        break;
+    }
+
     case XED_ICLASS_AND_LOCK: {
         auto op0 = compute_address(0);
         auto op1 = read_operand(1);
@@ -105,6 +116,18 @@ void atomic_translator::do_translate() {
             builder().insert_constant_i(src->val().type(), 1)->val());
         write_flags(res, flag_op::update, flag_op::ignore, flag_op::update,
                     flag_op::update, flag_op::update, flag_op::update);
+        break;
+    }
+
+    case XED_ICLASS_BTS_LOCK: {
+        auto dst = compute_address(0);
+        auto width = get_operand_width(0);
+        auto bit = xed_decoded_inst_get_unsigned_immediate(xed_inst()) % width;
+        auto mask = builder().insert_constant_i(value_type::u(width), 1ull << bit);
+        auto res = builder().insert_atomic_binop(binary_atomic_op::bts,
+                                                 dst->val(), mask->val());
+        write_flags(res, flag_op::ignore, flag_op::set0, flag_op::ignore,
+                    flag_op::ignore, flag_op::ignore, flag_op::ignore);
         break;
     }
 

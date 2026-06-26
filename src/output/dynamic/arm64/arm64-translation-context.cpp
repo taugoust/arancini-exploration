@@ -829,8 +829,10 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
             }
 
             // Scalar addition (including > 64-bits)
-            auto shift_op = extend_register(builder_, lhs_regset[0], op_type);
-            builder_.adds(dest_regset[0], lhs_regset[0], rhs_regset[0], shift_op);
+            auto lhs_op = lhs_regset[0];
+            lhs_op.cast(dest_regset[0].type());
+            auto shift_op = extend_register(builder_, rhs_regset[0], op_type);
+            builder_.adds(dest_regset[0], lhs_op, rhs_regset[0], shift_op);
 
             // Addition for > 64-bits
             for (std::size_t i = 1; i < dest_regset.size(); ++i)
@@ -863,8 +865,10 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
             }
 
             // Scalar subtraction (including > 64-bits)
-            auto shift_op = extend_register(builder_, lhs_regset[0], op_type);
-            builder_.subs(dest_regset[0], lhs_regset[0], rhs_regset[0], shift_op);
+            auto lhs_op = lhs_regset[0];
+            lhs_op.cast(dest_regset[0].type());
+            auto shift_op = extend_register(builder_, rhs_regset[0], op_type);
+            builder_.subs(dest_regset[0], lhs_op, rhs_regset[0], shift_op);
 
             // Subtraction for > 64-bits
             for (std::size_t i = 1; i < dest_regset.size(); ++i)
@@ -1693,6 +1697,46 @@ void arm64_translation_context::materialise_vector_insert(const vector_insert_no
     if (out.size() == 0 || source.size() == 0 || insert_value.size() == 0)
         throw backend_exception("Cannot perform vector insertion with 0-size registers");
 
+    if (n.val().type().element_width() < value_types::base_type.element_width()) {
+        builder_.insert_comment("Insert packed vector element by first copying source to destination");
+        builder_.move(variable(out), variable(source));
+
+        std::size_t insert_from = n.index() * n.val().type().element_width();
+        std::size_t insert_len = n.insert_value().type().width();
+        std::size_t dest_idx = insert_from / out[0].type().element_width();
+        std::size_t insert_idx = insert_from % out[0].type().element_width();
+        std::size_t inserted = 0;
+
+        [[unlikely]]
+        if (insert_from + insert_len > n.val().type().width())
+            throw backend_exception("Cannot insert at bit {} in destination vector", insert_from);
+
+        auto insert_bits_as = [&](const register_operand &bits, const value_type &type) -> register_operand {
+            if (bits.type().is_floating_point() && !type.is_floating_point()) {
+                auto raw_value = var_alloc_.allocate(value_type::u(bits.type().element_width()));
+                builder_.move(variable(raw_value), variable(bits));
+                auto raw = raw_value[0];
+                raw.cast(type);
+                return raw;
+            }
+            return cast(bits, type);
+        };
+
+        builder_.insert_comment("Insert packed vector element of type {} at index {}",
+                                n.insert_value().type(), n.index());
+        for (std::size_t bits_idx = 0; inserted < insert_len; ++dest_idx) {
+            auto chunk_len = std::min(insert_len - inserted,
+                                      out[dest_idx].type().element_width() - insert_idx);
+            auto insert = insert_bits_as(insert_value[bits_idx], out[dest_idx].type());
+            builder_.bfi(out[dest_idx], insert, insert_idx, chunk_len);
+
+            inserted += chunk_len;
+            insert_idx = 0;
+            bits_idx = inserted / insert_value[0].type().element_width();
+        }
+        return;
+    }
+
     std::size_t index = (n.index() * n.val().type().element_width()) / out[0].type().element_width();
 
     [[unlikely]]
@@ -1718,6 +1762,47 @@ void arm64_translation_context::materialise_vector_insert(const vector_insert_no
 void arm64_translation_context::materialise_vector_extract(const vector_extract_node &n) {
     auto &out = var_alloc_.allocate(n.val());
     const auto &source = materialise_port(n.source_vector());
+
+    if (n.source_vector().type().element_width() < value_types::base_type.element_width()) {
+        std::vector<register_operand> source_bits;
+        source_bits.reserve(source.size());
+        for (const auto &reg : source) {
+            if (reg.type().is_floating_point()) {
+                auto bits = var_alloc_.allocate(value_type::u(reg.type().element_width()));
+                builder_.move(variable(bits), variable(reg));
+                source_bits.push_back(bits);
+            } else {
+                source_bits.push_back(reg);
+            }
+        }
+
+        std::size_t extract_from = n.index() * n.source_vector().type().element_width();
+        std::size_t extract_len = n.val().type().width();
+        [[unlikely]]
+        if (extract_from + extract_len > n.source_vector().type().width())
+            throw backend_exception("Cannot extract from bit {} in source vector", extract_from);
+
+        std::size_t reg_extract_start = extract_from / source_bits[0].type().element_width();
+        std::size_t reg_extract_idx = extract_from % source_bits[0].type().element_width();
+        std::size_t extracted = 0;
+        std::size_t dest_idx = 0;
+
+        builder_.insert_comment("Extract packed vector element into destination");
+        builder_.move(variable(out), 0);
+        for (std::size_t i = reg_extract_start; extracted < extract_len; ++i) {
+            auto chunk_len = std::min(extract_len - extracted,
+                                      source_bits[i].type().element_width() - reg_extract_idx);
+            auto out_type = out[dest_idx].type();
+            out[dest_idx].cast(source_bits[i].type());
+            builder_.ubfx(out[dest_idx], source_bits[i], reg_extract_idx, chunk_len);
+            out[dest_idx].cast(out_type);
+
+            reg_extract_idx = 0;
+            extracted += chunk_len;
+            dest_idx = extracted / out[0].type().element_width();
+        }
+        return;
+    }
 
     std::size_t regs_per_element =
         (n.source_vector().type().element_width() +

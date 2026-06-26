@@ -132,10 +132,10 @@
           name = "phoenix-x86_64-musl-dynamic-seq";
           dontPatchELF = true;
           dontFixup = true;
-          hardeningDisable = [ "pie" "stackprotector" ];
+          hardeningDisable = [ "all" ];
           buildPhase = ''
             runHook preBuild
-            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -no-pie"
+            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE -no-pie"
             cc="x86_64-unknown-linux-musl-gcc"
             ar="x86_64-unknown-linux-musl-ar"
             ranlib="x86_64-unknown-linux-musl-ranlib"
@@ -160,6 +160,79 @@
         phoenix-musl-dynamic-seq =
           phoenix.packages.${system}.phoenix-x86_64-musl-dynamic-seq
             or phoenix-musl-dynamic-seq-bin;
+        phoenix-musl-dynamic-pthread-bin = phoenix-pthread.overrideAttrs (_old: {
+          name = "phoenix-x86_64-musl-dynamic-pthread";
+          dontPatchELF = true;
+          dontFixup = true;
+          hardeningDisable = [ "all" ];
+          buildPhase = ''
+            runHook preBuild
+            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE -no-pie"
+            cc="x86_64-unknown-linux-musl-gcc"
+            ar="x86_64-unknown-linux-musl-ar"
+            ranlib="x86_64-unknown-linux-musl-ranlib"
+            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/histogram histogram-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/kmeans kmeans-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/linear_regression linear_regression-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/matrix_multiply matrix_multiply-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/string_match string_match-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/word_count word_count-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out/bin" "$out/data"
+            install -m755 phoenix-2.0/tests/histogram/histogram-pthread "$out/bin/histogram-pthread-v2"
+            cp -p "$out/bin/histogram-pthread-v2" "$out/bin/histogram-pthread"
+            install -m755 phoenix-2.0/tests/kmeans/kmeans-pthread "$out/bin/kmeans-pthread-v2"
+            cp -p "$out/bin/kmeans-pthread-v2" "$out/bin/kmeans-pthread"
+            install -m755 phoenix-2.0/tests/linear_regression/linear_regression-pthread "$out/bin/linear_regression-pthread-v2"
+            cp -p "$out/bin/linear_regression-pthread-v2" "$out/bin/linear_regression-pthread"
+            install -m755 phoenix-2.0/tests/matrix_multiply/matrix_multiply-pthread "$out/bin/matrix_multiply-pthread-v2"
+            cp -p "$out/bin/matrix_multiply-pthread-v2" "$out/bin/matrix_multiply-pthread"
+            install -m755 phoenix-2.0/tests/string_match/string_match-pthread "$out/bin/string_match-pthread-v2"
+            cp -p "$out/bin/string_match-pthread-v2" "$out/bin/string_match-pthread"
+            install -m755 phoenix-2.0/tests/word_count/word_count-pthread "$out/bin/word_count-pthread-v2"
+            cp -p "$out/bin/word_count-pthread-v2" "$out/bin/word_count-pthread"
+            cp -a ${phoenix-pthread}/data/. "$out/data/"
+            runHook postInstall
+          '';
+        });
+        phoenix-musl-dynamic-pthread =
+          phoenix.packages.${system}.phoenix-x86_64-musl-dynamic-all
+            or phoenix-musl-dynamic-pthread-bin;
+        phoenix-musl-dynamic-pthread-pca-bin = phoenix-pthread.overrideAttrs (_old: {
+          name = "phoenix-x86_64-musl-dynamic-pthread-pca";
+          dontPatchELF = true;
+          dontFixup = true;
+          hardeningDisable = [ "all" ];
+          buildPhase = ''
+            runHook preBuild
+            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE -no-pie"
+            cc="x86_64-unknown-linux-musl-gcc"
+            ar="x86_64-unknown-linux-musl-ar"
+            ranlib="x86_64-unknown-linux-musl-ranlib"
+            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/pca pca-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out/bin" "$out/data"
+            install -m755 phoenix-2.0/tests/pca/pca-pthread "$out/bin/pca-pthread-v2"
+            cp -p "$out/bin/pca-pthread-v2" "$out/bin/pca-pthread"
+            cp -a ${phoenix-pthread}/data/. "$out/data/"
+            runHook postInstall
+          '';
+        });
         glibc-x86_64-pkgs = native_pkgs.pkgsCross.gnu64;
         phoenix-glibc-dynamic-seq-bin = glibc-x86_64-pkgs.stdenv.mkDerivation {
           pname = "phoenix-x86_64-glibc-dynamic-seq";
@@ -232,6 +305,136 @@
             runHook postInstall
           '';
         };
+        phoenix-glibc-dynamic-pthread-bin = glibc-x86_64-pkgs.stdenv.mkDerivation {
+          pname = "phoenix-x86_64-glibc-dynamic-pthread";
+          version = "2.0";
+          src = phoenix.outPath;
+          nativeBuildInputs = with native_pkgs; [ gnumake gnused coreutils ];
+          dontConfigure = true;
+          dontStrip = true;
+          dontPatchELF = true;
+          dontFixup = true;
+          hardeningDisable = [ "all" ];
+          postPatch = ''
+            find phoenix-2.0 sample_apps -type f \( -name '*.c' -o -name '*.h' \) \
+              -exec sed -i 's@#include <sys/unistd.h>@#include <unistd.h>@' {} +
+            substituteInPlace phoenix-2.0/tests/string_match/string_match-pthread.c \
+              --replace-fail '#include <crypt.h>' '/* crypt.h unused */'
+          '';
+          buildPhase = ''
+            runHook preBuild
+            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE -no-pie -pthread"
+            cc="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}gcc"
+            ar="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ar"
+            ranlib="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ranlib"
+            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            for app in histogram kmeans linear_regression matrix_multiply pca string_match word_count; do
+              make -C "phoenix-2.0/tests/$app" "$app-pthread" \
+                CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            done
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out/bin" "$out/data"
+            for app in histogram kmeans linear_regression matrix_multiply pca string_match word_count; do
+              install -m755 "phoenix-2.0/tests/$app/$app-pthread" "$out/bin/$app-pthread-v2"
+              cp -p "$out/bin/$app-pthread-v2" "$out/bin/$app-pthread"
+            done
+            cp -a ${phoenix-pthread}/data/. "$out/data/"
+            runHook postInstall
+          '';
+        };
+        phoenix-glibc-static-pthread-bin = glibc-x86_64-pkgs.stdenv.mkDerivation {
+          pname = "phoenix-x86_64-glibc-static-pthread";
+          version = "2.0";
+          src = phoenix.outPath;
+          nativeBuildInputs = with native_pkgs; [ gnumake gnused coreutils ];
+          dontConfigure = true;
+          dontStrip = true;
+          dontPatchELF = true;
+          dontFixup = true;
+          hardeningDisable = [ "all" ];
+          postPatch = ''
+            find phoenix-2.0 sample_apps -type f \( -name '*.c' -o -name '*.h' \) \
+              -exec sed -i 's@#include <sys/unistd.h>@#include <unistd.h>@' {} +
+            substituteInPlace phoenix-2.0/tests/string_match/string_match-pthread.c \
+              --replace-fail '#include <crypt.h>' '/* crypt.h unused */' \
+              --replace-fail '    srand( (unsigned)time( NULL ) );' '    srand(1);' \
+              --replace-fail '    gettimeofday(&starttime,0);' '    memset(&starttime, 0, sizeof(starttime));' \
+              --replace-fail '    gettimeofday(&endtime,0);' '    memset(&endtime, 0, sizeof(endtime));'
+            substituteInPlace phoenix-2.0/tests/word_count/word_count-pthread.c \
+              --replace-fail '   gettimeofday(&starttime,0);' '   memset(&starttime, 0, sizeof(starttime));' \
+              --replace-fail '   gettimeofday(&endtime,0);' '   memset(&endtime, 0, sizeof(endtime));' \
+              --replace-fail '   return 0;
+}' '   fflush(stdout);
+   return 0;
+}'
+          '';
+          buildPhase = ''
+            runHook preBuild
+            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -fno-PIE -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -pthread -L${glibc-x86_64-pkgs.glibc.static}/lib"
+            cc="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}gcc -static -no-pie"
+            ar="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ar"
+            ranlib="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ranlib"
+            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/histogram histogram-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/kmeans kmeans-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/linear_regression linear_regression-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/matrix_multiply matrix_multiply-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/pca pca-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/string_match string_match-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            make -C phoenix-2.0/tests/word_count word_count-pthread \
+              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out/bin" "$out/data"
+            install -m755 phoenix-2.0/tests/histogram/histogram-pthread \
+              "$out/bin/histogram-pthread-v2-static-glibc"
+            cp -p "$out/bin/histogram-pthread-v2-static-glibc" \
+              "$out/bin/histogram-pthread-static-glibc"
+            install -m755 phoenix-2.0/tests/kmeans/kmeans-pthread \
+              "$out/bin/kmeans-pthread-v2-static-glibc"
+            cp -p "$out/bin/kmeans-pthread-v2-static-glibc" \
+              "$out/bin/kmeans-pthread-static-glibc"
+            install -m755 phoenix-2.0/tests/linear_regression/linear_regression-pthread \
+              "$out/bin/linear_regression-pthread-v2-static-glibc"
+            cp -p "$out/bin/linear_regression-pthread-v2-static-glibc" \
+              "$out/bin/linear_regression-pthread-static-glibc"
+            install -m755 phoenix-2.0/tests/matrix_multiply/matrix_multiply-pthread \
+              "$out/bin/matrix_multiply-pthread-v2-static-glibc"
+            cp -p "$out/bin/matrix_multiply-pthread-v2-static-glibc" \
+              "$out/bin/matrix_multiply-pthread-static-glibc"
+            install -m755 phoenix-2.0/tests/pca/pca-pthread \
+              "$out/bin/pca-pthread-v2-static-glibc"
+            cp -p "$out/bin/pca-pthread-v2-static-glibc" \
+              "$out/bin/pca-pthread-static-glibc"
+            install -m755 phoenix-2.0/tests/string_match/string_match-pthread \
+              "$out/bin/string_match-pthread-v2-static-glibc"
+            cp -p "$out/bin/string_match-pthread-v2-static-glibc" \
+              "$out/bin/string_match-pthread-static-glibc"
+            install -m755 phoenix-2.0/tests/word_count/word_count-pthread \
+              "$out/bin/word_count-pthread-v2-static-glibc"
+            cp -p "$out/bin/word_count-pthread-v2-static-glibc" \
+              "$out/bin/word_count-pthread-static-glibc"
+            cp -a ${phoenix-pthread}/data/. "$out/data/"
+            runHook postInstall
+          '';
+        };
+        phoenix-glibc-static-pthread =
+          phoenix.packages.${system}.phoenix-x86_64-glibc-static-pthread
+            or phoenix-glibc-static-pthread-bin;
+        phoenix-glibc-dynamic-pthread =
+          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-pthread
+            or phoenix-glibc-dynamic-pthread-bin;
         phoenix-glibc-dynamic-seq =
           phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq or null;
         phoenix-glibc-dynamic-histogram-seq =
@@ -351,6 +554,237 @@
               touch "$out/passed"
             '';
           });
+          phoenix-histogram-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-histogram-pthread-static-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-histogram-pthread-static-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-kmeans-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-kmeans-pthread-static-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-kmeans-pthread-static-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-linear-regression-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-linear-regression-pthread-static-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-static-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-matrix-multiply-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-matrix-multiply-pthread-static-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-static-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-pca-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-pca-pthread-static-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-pca-pthread-static-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-string-match-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-string-match-pthread-static-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-string-match-pthread-static-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-word-count-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-word-count-pthread-static-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-word-count-pthread-static-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-histogram-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-histogram-pthread-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-histogram-pthread-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-kmeans-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-kmeans-pthread-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-kmeans-pthread-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-linear-regression-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-linear-regression-pthread-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-matrix-multiply-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-matrix-multiply-pthread-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-pca-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-pca-pthread-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-pca-pthread-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-string-match-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-string-match-pthread-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-string-match-pthread-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-word-count-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-word-count-pthread-glibc-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-word-count-pthread-glibc:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
           phoenix-kmeans-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
             name = "arancini-phoenix-kmeans-pthread-static-musl-dynamic-no-static";
             cmakeFlags = old.cmakeFlags ++ [
@@ -408,6 +842,253 @@
             checkPhase = ''
               runHook preCheck
               ctest --output-on-failure -R '^phoenix-linear-regression-pthread-v2-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-matrix-multiply-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-matrix-multiply-pthread-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-matrix-multiply-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-matrix-multiply-pthread-v2-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-v2-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-pca-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-pca-pthread-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-pca-pthread-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-pca-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-pca-pthread-v2-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-pca-pthread-v2-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-string-match-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-string-match-pthread-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-string-match-pthread-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-string-match-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-string-match-pthread-v2-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-string-match-pthread-v2-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-word-count-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-word-count-pthread-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-word-count-pthread-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-word-count-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-word-count-pthread-v2-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-word-count-pthread-v2-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-histogram-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-histogram-pthread-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-histogram-pthread-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-kmeans-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-kmeans-pthread-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-kmeans-pthread-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-linear-regression-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-linear-regression-pthread-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-matrix-multiply-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-matrix-multiply-pthread-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-pca-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-pca-pthread-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread-pca-bin}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-pca-pthread-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-string-match-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-string-match-pthread-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-string-match-pthread-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-word-count-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-word-count-pthread-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
+              "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-word-count-pthread-musl:dynamic$'
               runHook postCheck
             '';
             installPhase = ''

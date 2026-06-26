@@ -25,35 +25,35 @@ void binop_translator::do_translate() {
         rslt = builder().insert_and(op0->val(), op1->val());
         break;
     case XED_ICLASS_ANDPS: {
-        op0 = builder().insert_bitcast(value_type::vector(value_type::f32(), 4),
+        op0 = builder().insert_bitcast(value_type::vector(value_type::u32(), 4),
                                        op0->val());
-        op1 = builder().insert_bitcast(value_type::vector(value_type::f32(), 4),
+        op1 = builder().insert_bitcast(value_type::vector(value_type::u32(), 4),
                                        op1->val());
         rslt = builder().insert_and(op0->val(), op1->val());
         break;
     }
     case XED_ICLASS_ANDNPS: {
-        op0 = builder().insert_bitcast(value_type::vector(value_type::f32(), 4),
+        op0 = builder().insert_bitcast(value_type::vector(value_type::u32(), 4),
                                        op0->val());
         op0 = builder().insert_not(op0->val());
-        op1 = builder().insert_bitcast(value_type::vector(value_type::f32(), 4),
+        op1 = builder().insert_bitcast(value_type::vector(value_type::u32(), 4),
                                        op1->val());
         rslt = builder().insert_and(op0->val(), op1->val());
         break;
     }
     case XED_ICLASS_ANDPD: {
-        op0 = builder().insert_bitcast(value_type::vector(value_type::f64(), 2),
+        op0 = builder().insert_bitcast(value_type::vector(value_type::u64(), 2),
                                        op0->val());
-        op1 = builder().insert_bitcast(value_type::vector(value_type::f64(), 2),
+        op1 = builder().insert_bitcast(value_type::vector(value_type::u64(), 2),
                                        op1->val());
         rslt = builder().insert_and(op0->val(), op1->val());
         break;
     }
     case XED_ICLASS_ANDNPD: {
-        op0 = builder().insert_bitcast(value_type::vector(value_type::f64(), 2),
+        op0 = builder().insert_bitcast(value_type::vector(value_type::u64(), 2),
                                        op0->val());
         op0 = builder().insert_not(op0->val());
-        op1 = builder().insert_bitcast(value_type::vector(value_type::f64(), 2),
+        op1 = builder().insert_bitcast(value_type::vector(value_type::u64(), 2),
                                        op1->val());
         rslt = builder().insert_and(op0->val(), op1->val());
         break;
@@ -63,17 +63,17 @@ void binop_translator::do_translate() {
         rslt = builder().insert_or(op0->val(), op1->val());
         break;
     case XED_ICLASS_ORPS: {
-        op0 = builder().insert_bitcast(value_type::vector(value_type::f32(), 4),
+        op0 = builder().insert_bitcast(value_type::vector(value_type::u32(), 4),
                                        op0->val());
-        op1 = builder().insert_bitcast(value_type::vector(value_type::f32(), 4),
+        op1 = builder().insert_bitcast(value_type::vector(value_type::u32(), 4),
                                        op1->val());
         rslt = builder().insert_or(op0->val(), op1->val());
         break;
     }
     case XED_ICLASS_ORPD: {
-        op0 = builder().insert_bitcast(value_type::vector(value_type::f64(), 2),
+        op0 = builder().insert_bitcast(value_type::vector(value_type::u64(), 2),
                                        op0->val());
-        op1 = builder().insert_bitcast(value_type::vector(value_type::f64(), 2),
+        op1 = builder().insert_bitcast(value_type::vector(value_type::u64(), 2),
                                        op1->val());
         rslt = builder().insert_or(op0->val(), op1->val());
         break;
@@ -172,6 +172,22 @@ void binop_translator::do_translate() {
         auto rhs = builder().insert_bitcast(
             value_type::vector(value_type::u8(), 16), op1->val());
         rslt = builder().insert_sub(lhs->val(), rhs->val());
+        break;
+    }
+    case XED_ICLASS_PMINUB: {
+        auto lhs = builder().insert_bitcast(
+            value_type::vector(value_type::u8(), op0->val().type().width() / 8), op0->val());
+        auto rhs = builder().insert_bitcast(
+            value_type::vector(value_type::u8(), op1->val().type().width() / 8), op1->val());
+
+        for (int i = 0; i < op0->val().type().width() / 8; i++) {
+            auto lhs_elem = builder().insert_vector_extract(lhs->val(), i);
+            auto rhs_elem = builder().insert_vector_extract(rhs->val(), i);
+            auto lhs_gt_rhs = builder().insert_cmpgt(lhs_elem->val(), rhs_elem->val());
+            auto res = builder().insert_csel(lhs_gt_rhs->val(), rhs_elem->val(), lhs_elem->val());
+            lhs = builder().insert_vector_insert(lhs->val(), i, res->val());
+        }
+        rslt = lhs;
         break;
     }
     case XED_ICLASS_PCMPEQB:

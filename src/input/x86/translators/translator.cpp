@@ -505,10 +505,17 @@ value_node *translator::compute_address(int mem_idx) {
 
     auto seg = xed_decoded_inst_get_seg_reg(xed_inst(), mem_idx);
 
-    if (xed_get_register_width_bits(base_reg) != 64 &&
-        base_reg != XED_REG_INVALID) {
-        throw std::runtime_error("base reg invalid size");
-    }
+    auto read_address_reg = [this](xed_reg_enum_t reg) -> value_node * {
+        switch (xed_get_register_width_bits(reg)) {
+        case 64:
+            return read_reg(value_type::u64(), xedreg_to_offset(reg));
+        case 32:
+            return builder_.insert_zx(value_type::u64(),
+                                      read_reg(value_type::u32(), xedreg_to_offset(reg))->val());
+        default:
+            throw std::runtime_error("base/index reg invalid size");
+        }
+    };
 
     value_node *address_base{nullptr};
 
@@ -521,8 +528,7 @@ value_node *translator::compute_address(int mem_idx) {
                 address_base->val(),
                 builder_.insert_constant_u64(instruction_length)->val());
         } else {
-            address_base =
-                read_reg(value_type::u64(), xedreg_to_offset(base_reg));
+            address_base = read_address_reg(base_reg);
         }
     }
 
@@ -530,10 +536,10 @@ value_node *translator::compute_address(int mem_idx) {
         value_node *scaled_index;
         if (i != 0) {
             scaled_index = builder_.insert_lsl(
-                read_reg(value_type::u64(), xedreg_to_offset(index))->val(),
+                read_address_reg(index)->val(),
                 builder_.insert_constant_u64(i)->val());
         } else {
-            scaled_index = read_reg(value_type::u64(), xedreg_to_offset(index));
+            scaled_index = read_address_reg(index);
         }
 
         if (!address_base) {

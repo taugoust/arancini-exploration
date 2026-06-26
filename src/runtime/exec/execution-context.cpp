@@ -225,6 +225,10 @@ int execution_context::internal_call(void *cpu_state, int call) {
             util::global_logger.debug("System call: close()\n");
             x86_state->RAX = native_syscall(__NR_close, x86_state->RDI);
             break;
+        case 13: // rt_sigaction
+            util::global_logger.debug("System call: rt_sigaction()\n");
+            x86_state->RAX = 0;
+            break;
         case 4: // stat
         case 5: // fstat
         case 6: // lstat
@@ -649,6 +653,37 @@ int execution_context::internal_call(void *cpu_state, int call) {
             x86_state->RAX = gettid();
             break;
         }
+        case 257: // openat
+            util::global_logger.debug("System call: openat()\n");
+            x86_state->RAX = native_syscall(
+                __NR_openat, x86_state->RDI,
+                (uintptr_t)get_memory_ptr(x86_state->RSI), x86_state->RDX,
+                x86_state->R10);
+            break;
+        case 267: // readlink
+            util::global_logger.debug("System call: readlink()\n");
+            x86_state->RAX = native_syscall(
+                __NR_readlinkat, (uint64_t)AT_FDCWD,
+                (uintptr_t)get_memory_ptr(x86_state->RDI),
+                (uintptr_t)get_memory_ptr(x86_state->RSI), x86_state->RDX);
+            break;
+        case 273: // set_robust_list
+            util::global_logger.debug("System call: set_robust_list()\n");
+            x86_state->RAX = 0;
+            break;
+        case 302: // prlimit64
+            util::global_logger.debug("System call: prlimit64()\n");
+            x86_state->RAX = native_syscall(
+                __NR_prlimit64, x86_state->RDI, x86_state->RSI,
+                x86_state->RDX ? (uintptr_t)get_memory_ptr(x86_state->RDX) : 0,
+                x86_state->R10 ? (uintptr_t)get_memory_ptr(x86_state->R10) : 0);
+            break;
+        case 318: // getrandom
+            util::global_logger.debug("System call: getrandom()\n");
+            x86_state->RAX = native_syscall(
+                __NR_getrandom, (uintptr_t)get_memory_ptr(x86_state->RDI),
+                x86_state->RSI, x86_state->RDX);
+            break;
         case 231:
             util::global_logger.debug("System call: exit()\n");
 
@@ -669,7 +704,16 @@ int execution_context::internal_call(void *cpu_state, int call) {
             break;
         case 324: // membarrier
             util::global_logger.debug("System call: membarrier()\n");
-            native_syscall(__NR_rseq, x86_state->RDI, x86_state->RSI);
+            x86_state->RAX = native_syscall(__NR_membarrier, x86_state->RDI,
+                                            x86_state->RSI, x86_state->RDX);
+            break;
+        case 334: // rseq
+            util::global_logger.debug("System call: rseq()\n");
+            x86_state->RAX = -ENOSYS;
+            break;
+        case 435: // clone3
+            util::global_logger.debug("System call: clone3()\n");
+            x86_state->RAX = -ENOSYS;
             break;
         default:
             util::global_logger.error("Unsupported system call: {:#x}\n",
