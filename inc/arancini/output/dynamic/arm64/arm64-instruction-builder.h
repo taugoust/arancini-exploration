@@ -517,8 +517,13 @@ public:
             if (out.is_native_vector())
                 throw backend_exception("Cannot load native vectors");
 
-            for (auto vec_elem_it = out.values_begin(); vec_elem_it != out.values_end(); ++vec_elem_it)
-                return load_scalar(*vec_elem_it, address);
+            std::size_t offset = 0;
+            for (auto vec_elem_it = out.values_begin(); vec_elem_it != out.values_end(); ++vec_elem_it) {
+                memory_operand elem_address(address.base_register(), address.offset().value() + offset);
+                load_scalar(*vec_elem_it, elem_address);
+                offset += vec_elem_it->type().width() / 8;
+            }
+            return;
         }
 
         return load_scalar(out, address);
@@ -529,8 +534,13 @@ public:
             if (source.is_native_vector())
                 throw backend_exception("Cannot store native vectors");
 
-            for (auto vec_elem_it = source.values_begin(); vec_elem_it != source.values_end(); ++vec_elem_it)
-                return store_scalar(*vec_elem_it, address);
+            std::size_t offset = 0;
+            for (auto vec_elem_it = source.values_begin(); vec_elem_it != source.values_end(); ++vec_elem_it) {
+                memory_operand elem_address(address.base_register(), address.offset().value() + offset);
+                store_scalar(*vec_elem_it, elem_address);
+                offset += vec_elem_it->type().width() / 8;
+            }
+            return;
         }
 
         return store_scalar(source, address);
@@ -1447,12 +1457,22 @@ public:
     {
         if (!asm_.supports_lse()) {
             auto [load_mem_order, store_mem_order] = determine_memory_order(mem_order);
-            
-            atomic_block(current, mem, [this, &current, &acc]() {
-                compare(current, acc);
-                append(arm64_assembler::csel(acc, current, acc, cond_operand::ne()))
-                    .add_comment("conditionally move current memory scalar into accumulator");
-            }, load_mem_order, store_mem_order);
+            auto status = vreg_alloc_.allocate(ir::value_type::u32());
+            auto store_value = vreg_alloc_.allocate(src.type());
+            auto loop_label = format_label("loop");
+            auto success_label = format_label("success");
+
+            label(loop_label);
+            atomic_load(current, mem, load_mem_order);
+            compare(current, acc);
+            append(arm64_assembler::csel(store_value, current, src,
+                                         cond_operand::ne()))
+                .add_comment("store source only when accumulator matches memory");
+            atomic_store(status, store_value, mem, store_mem_order);
+            zero_compare_and_branch(status, success_label, cond_operand::eq());
+            branch(loop_label);
+            label(success_label);
+            compare(current, acc);
             return;
         }
 

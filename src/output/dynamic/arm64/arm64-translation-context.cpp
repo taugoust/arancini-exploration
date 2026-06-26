@@ -1719,7 +1719,13 @@ void arm64_translation_context::materialise_vector_extract(const vector_extract_
     auto &out = var_alloc_.allocate(n.val());
     const auto &source = materialise_port(n.source_vector());
 
-    std::size_t index = (n.index() * n.source_vector().type().element_width()) / value_types::base_type.element_width();
+    std::size_t regs_per_element =
+        (n.source_vector().type().element_width() +
+         value_types::base_type.element_width() - 1) /
+        value_types::base_type.element_width();
+    if (regs_per_element == 0)
+        regs_per_element = 1;
+    std::size_t index = n.index() * regs_per_element;
     if (out.size() >= source.size())
         throw backend_exception("Cannot extract vector larger than source vector");
     if (index + out.size() > source.size())

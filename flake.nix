@@ -127,6 +127,7 @@
           cmakeFlags = [ "-DBUILD_TESTS=1" ];
         };
         phoenix-seq = phoenix.packages.${system}.phoenix-x86_64-musl-static-seq;
+        phoenix-pthread = phoenix.packages.${system}.phoenix-x86_64-musl-static-pthread;
         phoenix-musl-dynamic-seq-bin = phoenix-seq.overrideAttrs (_old: {
           name = "phoenix-x86_64-musl-dynamic-seq";
           dontPatchELF = true;
@@ -311,6 +312,102 @@
             checkPhase = ''
               runHook preCheck
               ctest --output-on-failure -R '^phoenix-histogram-seq-static-musl:hybrid$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-histogram-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-histogram-pthread-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-histogram-pthread-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-histogram-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-histogram-pthread-v2-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-histogram-pthread-v2-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-kmeans-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-kmeans-pthread-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-kmeans-pthread-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-kmeans-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-kmeans-pthread-v2-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-kmeans-pthread-v2-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-linear-regression-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-linear-regression-pthread-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-static-musl:dynamic$'
+              runHook postCheck
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+          });
+          phoenix-linear-regression-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            name = "arancini-phoenix-linear-regression-pthread-v2-static-musl-dynamic-no-static";
+            cmakeFlags = old.cmakeFlags ++ [
+              "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
+            ];
+            doCheck = true;
+            checkPhase = ''
+              runHook preCheck
+              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-v2-static-musl:dynamic$'
               runHook postCheck
             '';
             installPhase = ''

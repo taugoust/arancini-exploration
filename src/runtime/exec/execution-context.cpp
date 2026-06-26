@@ -6,6 +6,7 @@
 #include <arancini/util/logger.h>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <ostream>
 #include <pthread.h>
@@ -56,9 +57,13 @@ void *MainLoopWrapper(void *args) {
     x86_state->RSP = x86_state->RSI;
     x86_state->FS = x86_state->R8;
 
-    int *ctid = (int *)parent_state->R10;
+    int *ptid = (int *)(largs->mem_base + parent_state->RDX);
+    int *ctid = (int *)(largs->mem_base + parent_state->R10);
     if (flags & CLONE_PARENT_SETTID) {
-        *(int *)parent_state->RDX = gettid();
+        *ptid = gettid();
+    }
+    if (flags & CLONE_CHILD_SETTID) {
+        *ctid = gettid();
     }
     if (flags & CLONE_CHILD_CLEARTID) {
         syscall(SYS_set_tid_address, ctid);
@@ -68,7 +73,10 @@ void *MainLoopWrapper(void *args) {
     pthread_mutex_unlock(largs->lock);
 
     MainLoop(x86_state);
-    syscall(SYS_futex, ctid, FUTEX_WAKE, 1, NULL, NULL, 0);
+    if (flags & CLONE_CHILD_CLEARTID) {
+        *ctid = 0;
+        syscall(SYS_futex, ctid, FUTEX_WAKE, 1, NULL, NULL, 0);
+    }
     return NULL;
 };
 
@@ -165,13 +173,11 @@ int execution_context::invoke(void *cpu_state) {
         return 1;
     }
 
-    // Chain
-    if (et->chain_address_) {
-        util::global_logger.info("Chaining previous block to {:#x}\n",
-                                 util::copy(x86_state->PC));
-
-        te_.chain(et->chain_address_, txln->get_code_ptr());
-    }
+    // Do not patch translated code while other translated threads may be
+    // executing it.  The dynamic backend's direct-branch chaining is a
+    // process-wide code modification, but pthread workloads can concurrently
+    // execute the same translation cache entries from multiple native threads.
+    // Leaving the indirect trampoline in place is slower but thread-safe.
 
     pthread_mutex_unlock(&big_fat_lock);
     const dbt::native_call_result result = txln->invoke(cpu_state);
@@ -606,11 +612,33 @@ int execution_context::internal_call(void *cpu_state, int call) {
                 (uintptr_t)get_memory_ptr((int64_t)x86_state->RDX));
             break;
         case 204: // sched_get_affinity
+        {
             util::global_logger.debug("System call: sched_get_affinity()\n");
-            x86_state->RAX = native_syscall(
-                __NR_sched_getaffinity, x86_state->RDI, x86_state->RSI,
-                (uintptr_t)get_memory_ptr((int64_t)x86_state->RDX));
+            auto guest_mask = static_cast<unsigned char *>(
+                get_memory_ptr((int64_t)x86_state->RDX));
+            const char *guest_cpus_env = std::getenv("ARANCINI_GUEST_CPUS");
+            char *guest_cpus_end = nullptr;
+            long guest_cpus = guest_cpus_env
+                                  ? std::strtol(guest_cpus_env,
+                                                &guest_cpus_end, 10)
+                                  : 0;
+            if (guest_cpus_env && guest_cpus_end != guest_cpus_env &&
+                guest_cpus > 0) {
+                auto mask_bytes = x86_state->RSI;
+                std::memset(guest_mask, 0, mask_bytes);
+                auto mask_bits = static_cast<long>(mask_bytes * 8);
+                for (long i = 0; i < guest_cpus && i < mask_bits; ++i) {
+                    guest_mask[i / 8] |= static_cast<unsigned char>(1u
+                                                                    << (i % 8));
+                }
+                x86_state->RAX = mask_bytes;
+            } else {
+                x86_state->RAX = native_syscall(__NR_sched_getaffinity,
+                                                x86_state->RDI, x86_state->RSI,
+                                                (uintptr_t)guest_mask);
+            }
             break;
+        }
         case 218: // set_tid_address
         {
             util::global_logger.debug("System call: set_tid_address()\n");

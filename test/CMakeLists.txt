@@ -12,6 +12,9 @@ set(static-musl-phoenix-path
 set(static-musl-phoenix-root
     ""
     CACHE PATH "Path to Phoenix x86_64 musl static package root (with bin/ and data/)")
+set(static-musl-pthread-phoenix-root
+    ""
+    CACHE PATH "Path to Phoenix x86_64 musl static pthread package root (with bin/ and data/)")
 set(dynamic-phoenix-root
     ""
     CACHE PATH "Path to dynamically linked Phoenix x86_64 package root (with bin/)")
@@ -321,6 +324,131 @@ if(static-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-bin}" -c
             "${phoenix-pca-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-seq-static-musl:hybrid"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endif()
+
+if(static-musl-pthread-phoenix-root)
+  set(phoenix-histogram-pthread-bin
+      "${static-musl-pthread-phoenix-root}/bin/histogram-pthread-static-musl")
+  set(phoenix-histogram-pthread-input
+      "${static-musl-pthread-phoenix-root}/data/histogram_datafiles/small.bmp")
+  set(phoenix-histogram-pthread-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-static-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-histogram-pthread-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-histogram-pthread-input}\"],\n    \"expected_stdout_sha256\": \"1db37aab2f6bfb687f45c82c8d19287b5c4495215f7129fd7d05d9658c3ae060\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-histogram-pthread-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-histogram-pthread-bin}" -c
+            "${phoenix-histogram-pthread-config}" --log-level INFO)
+  set_tests_properties("phoenix-histogram-pthread-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-histogram-pthread-v2-bin
+      "${static-musl-pthread-phoenix-root}/bin/histogram-pthread-v2-static-musl")
+  set(phoenix-histogram-pthread-v2-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-v2-static-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-histogram-pthread-v2-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-histogram-pthread-input}\"],\n    \"expected_stdout_sha256\": \"1db37aab2f6bfb687f45c82c8d19287b5c4495215f7129fd7d05d9658c3ae060\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-histogram-pthread-v2-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-histogram-pthread-v2-bin}" -c
+            "${phoenix-histogram-pthread-v2-config}" --log-level INFO)
+  set_tests_properties("phoenix-histogram-pthread-v2-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-kmeans-pthread-bin
+      "${static-musl-pthread-phoenix-root}/bin/kmeans-pthread-static-musl")
+  set(phoenix-kmeans-pthread-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-kmeans-pthread-static-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-kmeans-pthread-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"e4aae32678ffd444988bdad08e5e9c253e6c23394021ff669d97ab09fcb9f3e9\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-kmeans-pthread-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-kmeans-pthread-bin}" -c
+            "${phoenix-kmeans-pthread-config}" --log-level INFO)
+  set_tests_properties("phoenix-kmeans-pthread-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-kmeans-pthread-v2-bin
+      "${static-musl-pthread-phoenix-root}/bin/kmeans-pthread-v2-static-musl")
+  set(phoenix-kmeans-pthread-v2-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-kmeans-pthread-v2-static-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-kmeans-pthread-v2-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"e4aae32678ffd444988bdad08e5e9c253e6c23394021ff669d97ab09fcb9f3e9\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-kmeans-pthread-v2-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-kmeans-pthread-v2-bin}" -c
+            "${phoenix-kmeans-pthread-v2-config}" --log-level INFO)
+  set_tests_properties("phoenix-kmeans-pthread-v2-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-linear-regression-pthread-bin
+      "${static-musl-pthread-phoenix-root}/bin/linear_regression-pthread-static-musl")
+  set(phoenix-linear-regression-pthread-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-small.bin")
+  set(phoenix-linear-regression-pthread-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-static-musl.dynamic.json")
+
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "from pathlib import Path; Path(r'${phoenix-linear-regression-pthread-input}').write_bytes(bytes([1, 2, 2, 4, 3, 6, 4, 8]))")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-linear-regression-pthread-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-linear-regression-pthread-input}\"],\n    \"expected_stdout_sha256\": \"dbecd56c39fd6c5a577c7988b0fc133e84d2ba945a88ca2fe9fd0410499aa74d\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-linear-regression-pthread-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-linear-regression-pthread-bin}" -c
+            "${phoenix-linear-regression-pthread-config}" --log-level INFO)
+  set_tests_properties("phoenix-linear-regression-pthread-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-linear-regression-pthread-v2-bin
+      "${static-musl-pthread-phoenix-root}/bin/linear_regression-pthread-v2-static-musl")
+  set(phoenix-linear-regression-pthread-v2-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-pthread-v2-static-musl.dynamic.json")
+
+  file(
+    GENERATE
+    OUTPUT "${phoenix-linear-regression-pthread-v2-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\"\n    },\n    \"runtime_flags\": [\"${phoenix-linear-regression-pthread-input}\"],\n    \"expected_stdout_sha256\": \"dbecd56c39fd6c5a577c7988b0fc133e84d2ba945a88ca2fe9fd0410499aa74d\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+
+  add_test(
+    NAME "phoenix-linear-regression-pthread-v2-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
+            "${phoenix-linear-regression-pthread-v2-bin}" -c
+            "${phoenix-linear-regression-pthread-v2-config}" --log-level INFO)
+  set_tests_properties("phoenix-linear-regression-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()

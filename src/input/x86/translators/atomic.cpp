@@ -49,6 +49,7 @@ void atomic_translator::do_translate() {
 
         auto res =
             builder().insert_atomic_cmpxchg(dst->val(), acc->val(), src->val());
+        write_operand(2, res->val());
         write_flags(res, flag_op::update, flag_op::update, flag_op::update,
                     flag_op::update, flag_op::update, flag_op::update);
         break;
