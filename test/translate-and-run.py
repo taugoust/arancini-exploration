@@ -19,6 +19,7 @@ logger = logging.getLogger("Test Runner")
 keep_artifacts = False
 executor_wrapper = ""
 translate_only = False
+drop_compile_flags = []
 
 # Source: https://stackoverflow.com/questions/845276/how-to-print-the-comparison-of-two-multiline-strings-in-unified-diff-format
 def unified_diff(text1, text2):
@@ -83,6 +84,11 @@ class Tester:
             term_width = term_size_tuple[0]
             if term_width > 5:
                 term_width -= 5
+
+        for flag in drop_compile_flags:
+            self.config['compile_flags'] = [
+                existing for existing in self.config['compile_flags'] if existing != flag
+            ]
 
         for extra in extra_runtime_env:
             key, value = extra.split('=')
@@ -256,6 +262,12 @@ def parse_arguments():
                         action='store_true',
                         help='Invoke translator for input binary and exit (can be combined with --keep-artifacts to get the translator output')
 
+    parser.add_argument('--drop-compile-flag',
+                        required=False,
+                        default=[],
+                        action='append',
+                        help='Remove a compile flag loaded from the JSON config before translation')
+
     args = parser.parse_args()
 
     # TODO: refactor parsing here to directly store those flags
@@ -271,7 +283,10 @@ def parse_arguments():
     global translate_only
     translate_only = args.translate_only
 
-    return parser.parse_args()
+    global drop_compile_flags
+    drop_compile_flags = args.drop_compile_flag
+
+    return args
 
 if __name__ == "__main__":
     # Parse command-line flags

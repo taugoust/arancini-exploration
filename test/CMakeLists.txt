@@ -6,6 +6,29 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(tester "${Python3_EXECUTABLE}"
            "${CMAKE_CURRENT_LIST_DIR}/translate-and-run.py")
 
+function(add_phoenix_hybrid_test testname input_bin config workdir)
+  add_test(
+    NAME "${testname}:hybrid"
+    COMMAND ${tester} --drop-compile-flag=--no-static -t
+            "$<TARGET_FILE:txlat>" -i "${input_bin}" -c "${config}"
+            --log-level INFO)
+  set_tests_properties("${testname}:hybrid"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${workdir}")
+endfunction()
+
+function(add_phoenix_dynamic_and_hybrid_tests testname input_bin config workdir)
+  add_test(
+    NAME "${testname}:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${input_bin}" -c
+            "${config}" --log-level INFO)
+  set_tests_properties("${testname}:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${workdir}")
+  add_phoenix_hybrid_test("${testname}" "${input_bin}" "${config}"
+                          "${workdir}")
+endfunction()
+
 set(static-musl-phoenix-path
     "share/static-musl-phoenix"
     CACHE PATH "Path to static-musl-phoenix executables")
@@ -15,6 +38,9 @@ set(static-musl-phoenix-root
 set(static-musl-pthread-phoenix-root
     ""
     CACHE PATH "Path to Phoenix x86_64 musl static pthread package root (with bin/ and data/)")
+set(static-musl-mapreduce-phoenix-root
+    ""
+    CACHE PATH "Path to Phoenix x86_64 musl static mapreduce package root (with bin/ and data/)")
 set(static-glibc-pthread-phoenix-root
     ""
     CACHE PATH "Path to Phoenix x86_64 glibc static pthread package root (with bin/ and data/)")
@@ -358,6 +384,9 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-histogram-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-histogram-pthread-static-musl" "${phoenix-histogram-pthread-bin}"
+    "${phoenix-histogram-pthread-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-histogram-pthread-v2-bin
       "${static-musl-pthread-phoenix-root}/bin/histogram-pthread-v2-static-musl")
@@ -377,6 +406,10 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-histogram-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-histogram-pthread-v2-static-musl"
+    "${phoenix-histogram-pthread-v2-bin}"
+    "${phoenix-histogram-pthread-v2-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/kmeans-pthread-static-musl")
@@ -396,6 +429,9 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-kmeans-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-kmeans-pthread-static-musl" "${phoenix-kmeans-pthread-bin}"
+    "${phoenix-kmeans-pthread-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-pthread-v2-bin
       "${static-musl-pthread-phoenix-root}/bin/kmeans-pthread-v2-static-musl")
@@ -415,6 +451,9 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-kmeans-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-kmeans-pthread-v2-static-musl" "${phoenix-kmeans-pthread-v2-bin}"
+    "${phoenix-kmeans-pthread-v2-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/linear_regression-pthread-static-musl")
@@ -441,6 +480,10 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-linear-regression-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-linear-regression-pthread-static-musl"
+    "${phoenix-linear-regression-pthread-bin}"
+    "${phoenix-linear-regression-pthread-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-pthread-v2-bin
       "${static-musl-pthread-phoenix-root}/bin/linear_regression-pthread-v2-static-musl")
@@ -460,6 +503,10 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-linear-regression-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-linear-regression-pthread-v2-static-musl"
+    "${phoenix-linear-regression-pthread-v2-bin}"
+    "${phoenix-linear-regression-pthread-v2-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-matrix-multiply-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/matrix_multiply-pthread-static-musl")
@@ -499,6 +546,11 @@ if(static-musl-pthread-phoenix-root)
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY
                                     "${phoenix-matrix-multiply-pthread-workdir}")
+  add_phoenix_hybrid_test(
+    "phoenix-matrix-multiply-pthread-static-musl"
+    "${phoenix-matrix-multiply-pthread-bin}"
+    "${phoenix-matrix-multiply-pthread-config}"
+    "${phoenix-matrix-multiply-pthread-workdir}")
 
   add_test(
     NAME "phoenix-matrix-multiply-pthread-v2-static-musl:dynamic"
@@ -509,6 +561,11 @@ if(static-musl-pthread-phoenix-root)
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY
                                     "${phoenix-matrix-multiply-pthread-workdir}")
+  add_phoenix_hybrid_test(
+    "phoenix-matrix-multiply-pthread-v2-static-musl"
+    "${phoenix-matrix-multiply-pthread-v2-bin}"
+    "${phoenix-matrix-multiply-pthread-v2-config}"
+    "${phoenix-matrix-multiply-pthread-workdir}")
 
   set(phoenix-pca-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/pca-pthread-static-musl")
@@ -535,6 +592,9 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-pca-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-pca-pthread-static-musl" "${phoenix-pca-pthread-bin}"
+    "${phoenix-pca-pthread-config}" "${CMAKE_SOURCE_DIR}")
 
   add_test(
     NAME "phoenix-pca-pthread-v2-static-musl:dynamic"
@@ -544,6 +604,9 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-pca-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-pca-pthread-v2-static-musl" "${phoenix-pca-pthread-v2-bin}"
+    "${phoenix-pca-pthread-v2-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-string-match-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/string_match-pthread-static-musl")
@@ -580,6 +643,10 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-string-match-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-string-match-pthread-static-musl"
+    "${phoenix-string-match-pthread-bin}"
+    "${phoenix-string-match-pthread-config}" "${CMAKE_SOURCE_DIR}")
 
   add_test(
     NAME "phoenix-string-match-pthread-v2-static-musl:dynamic"
@@ -589,6 +656,10 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-string-match-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-string-match-pthread-v2-static-musl"
+    "${phoenix-string-match-pthread-v2-bin}"
+    "${phoenix-string-match-pthread-v2-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-word-count-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/word_count-pthread-static-musl")
@@ -625,6 +696,9 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-word-count-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-word-count-pthread-static-musl" "${phoenix-word-count-pthread-bin}"
+    "${phoenix-word-count-pthread-config}" "${CMAKE_SOURCE_DIR}")
 
   add_test(
     NAME "phoenix-word-count-pthread-v2-static-musl:dynamic"
@@ -634,6 +708,134 @@ if(static-musl-pthread-phoenix-root)
   set_tests_properties("phoenix-word-count-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
+    "phoenix-word-count-pthread-v2-static-musl"
+    "${phoenix-word-count-pthread-v2-bin}"
+    "${phoenix-word-count-pthread-v2-config}" "${CMAKE_SOURCE_DIR}")
+endif()
+
+if(static-musl-mapreduce-phoenix-root)
+  set(phoenix-mapreduce-env "\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>\",\n        \"MR_L1CACHESIZE\": \"8192\",\n        \"MR_NUMTHREADS\": \"1\",\n        \"MR_NUMPROCS\": \"1\",\n        \"MR_KEYMATCHFACTOR\": \"2\",\n        \"MR_1QPERTASK\": \"0\"\n")
+
+  set(phoenix-histogram-mapreduce-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/histogram-static-musl")
+  set(phoenix-histogram-mapreduce-input
+      "${static-musl-mapreduce-phoenix-root}/data/histogram_datafiles/small.bmp")
+  set(phoenix-histogram-mapreduce-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-mapreduce-static-musl.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-histogram-mapreduce-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"${phoenix-histogram-mapreduce-input}\"],\n    \"expected_stdout_sha256\": \"45206bc85e222d09a74f7e1edcd50a5e786ca3124abc08aa6d29d73e210fa4d0\",\n    \"expected_stderr_sha256\": \"fa1b7e0916c71a25e173a9f960728b458d5cda613480c8be1fd6ba52d7be5eb5\"\n}\n")
+  add_phoenix_dynamic_and_hybrid_tests(
+    "phoenix-histogram-mapreduce-static-musl"
+    "${phoenix-histogram-mapreduce-bin}"
+    "${phoenix-histogram-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-kmeans-mapreduce-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/kmeans-static-musl")
+  set(phoenix-kmeans-mapreduce-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-kmeans-mapreduce-static-musl.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-kmeans-mapreduce-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"-d\", \"3\", \"-c\", \"3\", \"-p\", \"1000\", \"-s\", \"1000\"],\n    \"expected_stdout_sha256\": \"af9d56e299227cd1890a9e1aa1170bbbc974e113ca82da4388a4eb0f05aade54\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_phoenix_dynamic_and_hybrid_tests(
+    "phoenix-kmeans-mapreduce-static-musl" "${phoenix-kmeans-mapreduce-bin}"
+    "${phoenix-kmeans-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-linear-regression-mapreduce-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/linear_regression-static-musl")
+  set(phoenix-linear-regression-mapreduce-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-mapreduce-small.bin")
+  set(phoenix-linear-regression-mapreduce-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-linear-regression-mapreduce-static-musl.dynamic.json")
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "from pathlib import Path; Path(r'${phoenix-linear-regression-mapreduce-input}').write_bytes(bytes([1, 2, 2, 4, 3, 6, 4, 8]))")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-linear-regression-mapreduce-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"${phoenix-linear-regression-mapreduce-input}\"],\n    \"expected_stdout_sha256\": \"a1d50f2603f02d7d4046fb0b45a5c088befd3fa549102f2cb817111e8fc65302\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_phoenix_dynamic_and_hybrid_tests(
+    "phoenix-linear-regression-mapreduce-static-musl"
+    "${phoenix-linear-regression-mapreduce-bin}"
+    "${phoenix-linear-regression-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-matrix-multiply-mapreduce-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/matrix_multiply-static-musl")
+  set(phoenix-matrix-multiply-mapreduce-workdir
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-mapreduce-workdir")
+  set(phoenix-matrix-multiply-mapreduce-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-matrix-multiply-mapreduce-static-musl.dynamic.json")
+  file(MAKE_DIRECTORY "${phoenix-matrix-multiply-mapreduce-workdir}")
+  configure_file(
+    "${CMAKE_SOURCE_DIR}/aarch64.exec.lds"
+    "${phoenix-matrix-multiply-mapreduce-workdir}/aarch64.exec.lds" COPYONLY)
+  execute_process(
+    COMMAND
+      "${Python3_EXECUTABLE}" "-c"
+      "import pathlib; d = pathlib.Path(r'${phoenix-matrix-multiply-mapreduce-workdir}'); data = bytes(32 * 32 * 4); (d / 'matrix_file_A.txt').write_bytes(data); (d / 'matrix_file_B.txt').write_bytes(data)")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-matrix-multiply-mapreduce-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"32\", \"1\"],\n    \"expected_stdout_sha256\": \"a278d9ec2aa8df1a75ef72e16ed03960c7a8a90ea3f22d7424967af719472eb7\",\n    \"expected_stderr_sha256\": \"3afdddde6bd17de542151a0a75eac106ffd0477fdaab4c66d3832e107ebb82c4\"\n}\n")
+  add_phoenix_dynamic_and_hybrid_tests(
+    "phoenix-matrix-multiply-mapreduce-static-musl"
+    "${phoenix-matrix-multiply-mapreduce-bin}"
+    "${phoenix-matrix-multiply-mapreduce-config}"
+    "${phoenix-matrix-multiply-mapreduce-workdir}")
+
+  set(phoenix-pca-mapreduce-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/pca-static-musl")
+  set(phoenix-pca-mapreduce-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-mapreduce-static-musl.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-pca-mapreduce-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"cde797f4a38a0aa4c16275aad5513ecdf646f25adf603b89a540a08fd7ad0db0\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_phoenix_dynamic_and_hybrid_tests(
+    "phoenix-pca-mapreduce-static-musl" "${phoenix-pca-mapreduce-bin}"
+    "${phoenix-pca-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-string-match-mapreduce-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/string_match-static-musl")
+  set(phoenix-string-match-mapreduce-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-mapreduce-small.txt")
+  set(phoenix-string-match-mapreduce-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-string-match-mapreduce-static-musl.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-mapreduce-input}"
+    CONTENT "the quick brown fox jumps over the lazy dog\nthe fox was quick\n")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-string-match-mapreduce-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"${phoenix-string-match-mapreduce-input}\"],\n    \"expected_stdout_sha256\": \"58cbf9127013df3a665f2037f26e4da84be3bff2a42980d4ba98d8908402e67e\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_phoenix_dynamic_and_hybrid_tests(
+    "phoenix-string-match-mapreduce-static-musl"
+    "${phoenix-string-match-mapreduce-bin}"
+    "${phoenix-string-match-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+
+  set(phoenix-word-count-mapreduce-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/word_count-static-musl")
+  set(phoenix-word-count-mapreduce-input
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-mapreduce-small.txt")
+  set(phoenix-word-count-mapreduce-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-word-count-mapreduce-static-musl.dynamic.json")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-mapreduce-input}"
+    CONTENT "the quick brown fox jumps over the lazy dog\nthe fox was quick\n")
+  file(
+    GENERATE
+    OUTPUT "${phoenix-word-count-mapreduce-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"${phoenix-word-count-mapreduce-input}\"],\n    \"expected_stdout_sha256\": \"8a2f826ebe551da875da911874019ae3e5e29e99dda768ed665a7bcc516bb4bf\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_phoenix_dynamic_and_hybrid_tests(
+    "phoenix-word-count-mapreduce-static-musl"
+    "${phoenix-word-count-mapreduce-bin}"
+    "${phoenix-word-count-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
 endif()
 
 if(static-glibc-pthread-phoenix-root)
