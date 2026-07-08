@@ -487,1732 +487,835 @@
               "$out/bin/word_count-seq-static-musl"
           '';
         });
+        mkPhoenixCheck =
+          {
+            name,
+            cmakeFlags ? [ ],
+            testRegex,
+          }:
+          native_pkgs.runCommand name
+            {
+              nativeBuildInputs = with native_pkgs; [
+                cmake
+                python3
+                clang_18
+                gcc
+              ];
+            }
+            ''
+              runHook preBuild
+
+              mkdir -p test-src
+              ln -s ${self.outPath}/aarch64.exec.lds test-src/aarch64.exec.lds
+              ln -s ${self.outPath}/riscv64.exec.lds test-src/riscv64.exec.lds
+              if [ -e ${self.outPath}/x86_64.exec.lds ]; then
+                ln -s ${self.outPath}/x86_64.exec.lds test-src/x86_64.exec.lds
+              fi
+              ln -s ${self.outPath}/lib.lds test-src/lib.lds
+              ln -s ${self.outPath}/lib.aarch64.lds test-src/lib.aarch64.lds
+              cat > test-src/CMakeLists.txt <<EOF
+cmake_minimum_required(VERSION 3.22)
+project(arancini-test-wrapper LANGUAGES C CXX ASM)
+
+add_executable(txlat IMPORTED GLOBAL)
+set_target_properties(txlat PROPERTIES IMPORTED_LOCATION "${arancini-package}/bin/txlat")
+
+add_library(arancini-runtime SHARED IMPORTED GLOBAL)
+set_target_properties(arancini-runtime PROPERTIES IMPORTED_LOCATION "${arancini-package}/lib/libarancini-runtime.so")
+
+enable_testing()
+add_subdirectory("${self.outPath}/test" test)
+EOF
+
+              cmake -S test-src -B build ${native_pkgs.lib.escapeShellArgs cmakeFlags}
+              ctest --test-dir build --output-on-failure -R ${native_pkgs.lib.escapeShellArg testRegex}
+
+              mkdir -p "$out"
+              touch "$out/passed"
+
+              runHook postBuild
+            '';
       in
       {
         defaultPackage = arancini-package;
         checks = native_pkgs.lib.optionalAttrs (system == "aarch64-linux") {
-          phoenix-histogram-dynamic-no-static = arancini-package.overrideAttrs (old: {
+          phoenix-histogram-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-seq-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-seq-static-musl:dynamic$";
+          };
+          phoenix-histogram-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-seq-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-seq-static-musl:hybrid$";
+          };
+          phoenix-histogram-pthread-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-pthread-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-pthread-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-pthread-static-musl:dynamic$";
+          };
+          phoenix-histogram-pthread-v2-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-pthread-v2-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-pthread-v2-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-pthread-v2-static-musl:dynamic$";
+          };
+          phoenix-histogram-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-pthread-static-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-pthread-static-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-pthread-static-glibc:dynamic$";
+          };
+          phoenix-kmeans-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-pthread-static-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-pthread-static-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-pthread-static-glibc:dynamic$";
+          };
+          phoenix-linear-regression-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-pthread-static-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-static-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-pthread-static-glibc:dynamic$";
+          };
+          phoenix-matrix-multiply-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-pthread-static-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-static-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-pthread-static-glibc:dynamic$";
+          };
+          phoenix-pca-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-static-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-pthread-static-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-pthread-static-glibc:dynamic$";
+          };
+          phoenix-string-match-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-pthread-static-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-pthread-static-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-pthread-static-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-pthread-static-glibc:dynamic$";
+          };
+          phoenix-word-count-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-pthread-static-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-pthread-static-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-pthread-static-glibc:dynamic$";
+          };
+          phoenix-histogram-pthread-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-pthread-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-pthread-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-pthread-glibc:dynamic$";
+          };
+          phoenix-kmeans-pthread-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-pthread-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-pthread-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-pthread-glibc:dynamic$";
+          };
+          phoenix-linear-regression-pthread-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-pthread-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-pthread-glibc:dynamic$";
+          };
+          phoenix-matrix-multiply-pthread-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-pthread-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-pthread-glibc:dynamic$";
+          };
+          phoenix-pca-pthread-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-pthread-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-pthread-glibc:dynamic$";
+          };
+          phoenix-string-match-pthread-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-pthread-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-pthread-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-pthread-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-pthread-glibc:dynamic$";
+          };
+          phoenix-word-count-pthread-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-pthread-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-glibc-pthread-phoenix-root=${phoenix-glibc-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-pthread-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-pthread-glibc:dynamic$";
+          };
+          phoenix-kmeans-pthread-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-pthread-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-pthread-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-pthread-static-musl:dynamic$";
+          };
+          phoenix-kmeans-pthread-v2-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-pthread-v2-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-pthread-v2-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-pthread-v2-static-musl:dynamic$";
+          };
+          phoenix-linear-regression-pthread-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-pthread-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-pthread-static-musl:dynamic$";
+          };
+          phoenix-linear-regression-pthread-v2-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-pthread-v2-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-v2-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-pthread-v2-static-musl:dynamic$";
+          };
+          phoenix-matrix-multiply-pthread-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-pthread-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-pthread-static-musl:dynamic$";
+          };
+          phoenix-matrix-multiply-pthread-v2-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-pthread-v2-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-v2-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-pthread-v2-static-musl:dynamic$";
+          };
+          phoenix-pca-pthread-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-pthread-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-pthread-static-musl:dynamic$";
+          };
+          phoenix-pca-pthread-v2-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-v2-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-pthread-v2-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-pthread-v2-static-musl:dynamic$";
+          };
+          phoenix-string-match-pthread-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-pthread-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-pthread-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-pthread-static-musl:dynamic$";
+          };
+          phoenix-string-match-pthread-v2-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-pthread-v2-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-pthread-v2-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-pthread-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-pthread-v2-static-musl:dynamic$";
+          };
+          phoenix-word-count-pthread-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-pthread-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-pthread-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-pthread-v2-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-pthread-static-musl:dynamic$";
+          };
+          phoenix-word-count-pthread-v2-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-pthread-v2-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-pthread-v2-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-pthread-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-pthread-v2-static-musl:dynamic$";
+          };
+          phoenix-histogram-pthread-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-pthread-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-pthread-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-pthread-v2-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-pthread-static-musl:hybrid$";
+          };
+          phoenix-histogram-pthread-v2-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-pthread-v2-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-pthread-v2-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-pthread-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-pthread-v2-static-musl:hybrid$";
+          };
+          phoenix-kmeans-pthread-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-pthread-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-pthread-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-pthread-v2-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-pthread-static-musl:hybrid$";
+          };
+          phoenix-kmeans-pthread-v2-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-pthread-v2-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-pthread-v2-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-pthread-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-pthread-v2-static-musl:hybrid$";
+          };
+          phoenix-linear-regression-pthread-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-pthread-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-pthread-v2-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-pthread-static-musl:hybrid$";
+          };
+          phoenix-linear-regression-pthread-v2-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-pthread-v2-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-v2-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-pthread-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-pthread-v2-static-musl:hybrid$";
+          };
+          phoenix-matrix-multiply-pthread-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-pthread-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-pthread-v2-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-pthread-static-musl:hybrid$";
+          };
+          phoenix-matrix-multiply-pthread-v2-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-pthread-v2-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-v2-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-pthread-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-pthread-v2-static-musl:hybrid$";
+          };
+          phoenix-pca-pthread-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-pthread-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-pthread-v2-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-pthread-static-musl:hybrid$";
+          };
+          phoenix-pca-pthread-v2-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-v2-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-pthread-v2-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-pthread-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-pthread-v2-static-musl:hybrid$";
+          };
+          phoenix-string-match-pthread-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-pthread-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-pthread-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-pthread-v2-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-pthread-static-musl:hybrid$";
+          };
+          phoenix-string-match-pthread-v2-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-pthread-v2-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-pthread-v2-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-pthread-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-pthread-v2-static-musl:hybrid$";
+          };
+          phoenix-word-count-pthread-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-pthread-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-pthread-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-pthread-v2-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-pthread-static-musl:hybrid$";
+          };
+          phoenix-word-count-pthread-v2-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-pthread-v2-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-pthread-phoenix-root=${phoenix-pthread}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-pthread-v2-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-mapreduce-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-pthread-v2-static-musl:hybrid$";
+          };
+          phoenix-histogram-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-mapreduce-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-mapreduce-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-mapreduce-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-mapreduce-static-musl:dynamic$";
+          };
+          phoenix-histogram-mapreduce-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-mapreduce-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-mapreduce-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-mapreduce-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-kmeans-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-mapreduce-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-mapreduce-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-mapreduce-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-mapreduce-static-musl:dynamic$";
+          };
+          phoenix-kmeans-mapreduce-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-mapreduce-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-mapreduce-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-mapreduce-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-linear-regression-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-mapreduce-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-mapreduce-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-mapreduce-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-mapreduce-static-musl:dynamic$";
+          };
+          phoenix-linear-regression-mapreduce-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-mapreduce-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-mapreduce-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-mapreduce-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-matrix-multiply-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-mapreduce-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-mapreduce-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-mapreduce-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-mapreduce-static-musl:dynamic$";
+          };
+          phoenix-matrix-multiply-mapreduce-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-mapreduce-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-mapreduce-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-mapreduce-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-pca-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-mapreduce-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-mapreduce-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-mapreduce-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-mapreduce-static-musl:dynamic$";
+          };
+          phoenix-pca-mapreduce-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-pca-mapreduce-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-mapreduce-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-mapreduce-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-string-match-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-mapreduce-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-mapreduce-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-mapreduce-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-mapreduce-static-musl:dynamic$";
+          };
+          phoenix-string-match-mapreduce-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-mapreduce-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-mapreduce-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-mapreduce-static-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-word-count-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-mapreduce-static-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-mapreduce-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-mapreduce-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-mapreduce-static-musl:dynamic$";
+          };
+          phoenix-word-count-mapreduce-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-mapreduce-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-mapreduce-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-histogram-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-pthread-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-pthread-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-pthread-musl:dynamic$";
+          };
+          phoenix-kmeans-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-pthread-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-pthread-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-pthread-musl:dynamic$";
+          };
+          phoenix-linear-regression-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-pthread-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-pthread-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-pthread-musl:dynamic$";
+          };
+          phoenix-matrix-multiply-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-pthread-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-pthread-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-pthread-musl:dynamic$";
+          };
+          phoenix-pca-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread-pca-bin}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-pthread-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-pthread-musl:dynamic$";
+          };
+          phoenix-string-match-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-pthread-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-pthread-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-pthread-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-pthread-musl:dynamic$";
+          };
+          phoenix-word-count-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-pthread-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-pthread-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-pthread-musl:dynamic$";
+          };
+          phoenix-histogram-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-seq-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-musl-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-seq-musl:dynamic$";
+          };
+          phoenix-histogram-musl-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-musl-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-seq-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-seq-musl:hybrid$";
+          };
+          phoenix-kmeans-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-seq-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-musl-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-seq-musl:dynamic$";
+          };
+          phoenix-kmeans-musl-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-musl-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-seq-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-seq-musl:hybrid$";
+          };
+          phoenix-linear-regression-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-seq-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-musl-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-seq-musl:dynamic$";
+          };
+          phoenix-linear-regression-musl-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-musl-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-seq-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-seq-musl:hybrid$";
+          };
+          phoenix-matrix-multiply-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-seq-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-musl-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-seq-musl:dynamic$";
+          };
+          phoenix-matrix-multiply-musl-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-musl-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-seq-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-seq-musl:hybrid$";
+          };
+          phoenix-string-match-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-seq-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-musl-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-seq-musl:dynamic$";
+          };
+          phoenix-string-match-musl-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-musl-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-seq-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-seq-musl:hybrid$";
+          };
+          phoenix-word-count-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-seq-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-musl-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-seq-musl:dynamic$";
+          };
+          phoenix-word-count-musl-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-musl-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-seq-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-musl-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-seq-musl:hybrid$";
+          };
+          phoenix-pca-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-musl-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-seq-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-musl-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-seq-musl:dynamic$";
+          };
+          phoenix-pca-musl-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-pca-musl-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-musl-phoenix-root=${phoenix-musl-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-seq-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-seq-musl:hybrid$";
+          };
+          phoenix-histogram-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-histogram-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-seq-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-histogram-glibc-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-seq-glibc:dynamic$";
+          };
+          phoenix-histogram-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-glibc-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-histogram-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-histogram-seq-glibc:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-histogram-seq-glibc:hybrid$";
+          };
+          phoenix-kmeans-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-kmeans-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-seq-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-glibc-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-seq-glibc:dynamic$";
+          };
+          phoenix-kmeans-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-glibc-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-kmeans-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-seq-glibc:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-seq-glibc:hybrid$";
+          };
+          phoenix-linear-regression-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-linear-regression-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-seq-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-glibc-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-seq-glibc:dynamic$";
+          };
+          phoenix-linear-regression-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-glibc-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-linear-regression-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-seq-glibc:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-seq-glibc:hybrid$";
+          };
+          phoenix-matrix-multiply-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-matrix-multiply-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-seq-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-glibc-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-seq-glibc:dynamic$";
+          };
+          phoenix-matrix-multiply-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-glibc-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-matrix-multiply-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-seq-glibc:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-seq-glibc:hybrid$";
+          };
+          phoenix-pca-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-pca-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-seq-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-glibc-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-seq-glibc:dynamic$";
+          };
+          phoenix-pca-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-pca-glibc-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-pca-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-seq-glibc:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-seq-glibc:hybrid$";
+          };
+          phoenix-string-match-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-string-match-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-seq-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-glibc-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-seq-glibc:dynamic$";
+          };
+          phoenix-string-match-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-glibc-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-string-match-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-seq-glibc:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-glibc-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-seq-glibc:hybrid$";
+          };
+          phoenix-word-count-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-glibc-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-word-count-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-seq-glibc:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-glibc-dynamic-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-seq-glibc:dynamic$";
+          };
+          phoenix-word-count-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-glibc-dynamic-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-word-count-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-seq-glibc:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-seq-glibc:hybrid$";
+          };
+          phoenix-kmeans-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-seq-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-kmeans-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-seq-static-musl:dynamic$";
+          };
+          phoenix-kmeans-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-kmeans-seq-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-kmeans-seq-static-musl:hybrid$";
+          };
+          phoenix-linear-regression-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-linear-regression-seq-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-seq-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-linear-regression-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-seq-static-musl:dynamic$";
+          };
+          phoenix-linear-regression-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-linear-regression-seq-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-linear-regression-seq-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-linear-regression-seq-static-musl:hybrid$";
+          };
+          phoenix-matrix-multiply-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-matrix-multiply-seq-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-seq-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-matrix-multiply-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-seq-static-musl:dynamic$";
+          };
+          phoenix-matrix-multiply-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-matrix-multiply-seq-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-matrix-multiply-seq-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-matrix-multiply-seq-static-musl:hybrid$";
+          };
+          phoenix-string-match-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-string-match-seq-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-seq-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-string-match-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-seq-static-musl:dynamic$";
+          };
+          phoenix-string-match-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-string-match-seq-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-string-match-seq-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-string-match-seq-static-musl:hybrid$";
+          };
+          phoenix-word-count-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-word-count-seq-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-seq-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-word-count-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-seq-static-musl:dynamic$";
+          };
+          phoenix-word-count-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-word-count-seq-bin}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-word-count-seq-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-dynamic-no-static = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-word-count-seq-static-musl:hybrid$";
+          };
+          phoenix-pca-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-dynamic-no-static";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-seq-static-musl:dynamic$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
-          phoenix-pca-static-musl-hybrid = arancini-package.overrideAttrs (old: {
+            testRegex = "^phoenix-pca-seq-static-musl:dynamic$";
+          };
+          phoenix-pca-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-pca-static-musl-hybrid";
-            cmakeFlags = old.cmakeFlags ++ [
+            cmakeFlags = [
               "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
-            doCheck = true;
-            checkPhase = ''
-              runHook preCheck
-              ctest --output-on-failure -R '^phoenix-pca-seq-static-musl:hybrid$'
-              runHook postCheck
-            '';
-            installPhase = ''
-              mkdir -p "$out"
-              touch "$out/passed"
-            '';
-          });
+            testRegex = "^phoenix-pca-seq-static-musl:hybrid$";
+          };
         };
       }
     )
