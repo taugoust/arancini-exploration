@@ -680,6 +680,25 @@ void txlat_engine::translate(
                                    sizeof(no_symbol));
                         file.write(reinterpret_cast<const char *>(&addend),
                                    sizeof(addend));
+                    } else if (dyn_sym && reloc.symbol() < dyn_sym->symbols().size() &&
+                               dyn_sym->symbols()[reloc.symbol()].is_weak() &&
+                               dyn_sym->symbols()[reloc.symbol()].section_index() == SHN_UNDEF) {
+#if defined(ARCH_AARCH64)
+                        constexpr int host_relative_reloc = R_AARCH64_RELATIVE;
+#elif defined(ARCH_RISCV64)
+                        constexpr int host_relative_reloc = R_RISCV_RELATIVE;
+#else
+                        constexpr int host_relative_reloc = 0;
+#endif
+                        unsigned int no_symbol = 0;
+                        uint64_t addend = reloc.addend();
+                        file.write(reinterpret_cast<const char *>(
+                                       &host_relative_reloc),
+                                   sizeof(host_relative_reloc));
+                        file.write(reinterpret_cast<const char *>(&no_symbol),
+                                   sizeof(no_symbol));
+                        file.write(reinterpret_cast<const char *>(&addend),
+                                   sizeof(addend));
                     } else {
                         throw std::runtime_error("Unable to resolve generated guest symbol " +
                                                  guest_name);

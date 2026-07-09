@@ -1933,6 +1933,7 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
             out =
                 builder.CreateAtomicRMW(AtomicRMWInst::Add, lhs, rhs, align,
                                         AtomicOrdering::SequentiallyConsistent);
+            val = builder.CreateAdd(out, rhs);
             if (reg_off != -1) {
                 auto reg = reg_to_alloca_.at((reg_offsets)reg_off);
                 builder.CreateStore(out, reg);
@@ -1983,6 +1984,10 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
     }
     case node_kinds::ternary_atomic: {
         auto tan = (ternary_atomic_node *)a;
+        auto existing = node_ports_to_llvm_values_.find(&tan->val());
+        if (existing != node_ports_to_llvm_values_.end())
+            return existing->second;
+
         auto lhs = lower_port(builder, state_arg, pkt, tan->address());
 #ifndef ARCH_X86_64
         // auto gs_reg = builder.CreateGEP(types.cpu_state, state_arg, {
@@ -2035,7 +2040,7 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
             // builder.CreateSelect(builder.CreateExtractValue(instr, 1), rhs,
             // builder.CreateExtractValue(instr, 0));
             auto new_rax_val = builder.CreateExtractValue(instr, 0);
-            builder.CreateStore(builder.CreateZExt(new_rax_val, types.i64),
+            builder.CreateStore(builder.CreateZExtOrTrunc(new_rax_val, types.i64),
                                 rax_reg);
             builder.CreateStore(
                 builder.CreateZExt(builder.CreateExtractValue(instr, 1),
@@ -2045,7 +2050,8 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
                 builder.CreateFence(AtomicOrdering::SequentiallyConsistent);
             }
 
-            return instr;
+            node_ports_to_llvm_values_[&tan->val()] = new_rax_val;
+            return new_rax_val;
         }
         default:
             throw std::runtime_error("unsupported tern atomic operation " +

@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <atomic>
+#include <cstdlib>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -497,6 +498,19 @@ public:
     void move(const variable& out, const immediate_operand& imm) {
         if (imm.type().is_floating_point()) {
             append(arm64_assembler::fmov(out, imm));
+            return;
+        }
+
+        if (out.type().is_floating_point()) {
+            auto int_type = ir::value_type::u(out[0].type().element_width());
+            auto tmp = vreg_alloc_.allocate(int_type);
+            move(variable(tmp), immediate_operand(imm.value(), int_type));
+            move(out[0], variable(tmp));
+            for (std::size_t i = 1; i < out.size(); ++i) {
+                auto tmp = vreg_alloc_.allocate(ir::value_type::u(out[i].type().element_width()));
+                move(variable(tmp), immediate_operand(0, tmp.type()));
+                move(out[i], variable(tmp));
+            }
             return;
         }
 
@@ -1046,6 +1060,16 @@ public:
                       std::function<void()> atomic_logic, 
                       std::memory_order load_mem_order = std::memory_order_acquire,
                       std::memory_order store_mem_order = std::memory_order_release) {
+        if (data.type().width() == 64) {
+            if (const char *guest_cpus = std::getenv("ARANCINI_GUEST_CPUS");
+                guest_cpus && std::atoi(guest_cpus) == 1) {
+                load(variable(data), mem);
+                atomic_logic();
+                store(variable(data), mem);
+                return;
+            }
+        }
+
         auto status = vreg_alloc_.allocate(ir::value_type::u32());
         auto loop_label = format_label("loop");
         auto success_label = format_label("success");
@@ -1456,6 +1480,18 @@ public:
                 std::memory_order mem_order = default_memory_order)
     {
         if (!asm_.supports_lse()) {
+            if (const char *guest_cpus = std::getenv("ARANCINI_GUEST_CPUS");
+                guest_cpus && std::atoi(guest_cpus) == 1) {
+                auto done_label = format_label("done");
+                load(variable(current), mem);
+                compare(current, acc);
+                branch(done_label, cond_operand::ne());
+                store(variable(src), mem);
+                label(done_label);
+                compare(current, acc);
+                return;
+            }
+
             auto [load_mem_order, store_mem_order] = determine_memory_order(mem_order);
             auto status = vreg_alloc_.allocate(ir::value_type::u32());
             auto store_value = vreg_alloc_.allocate(src.type());

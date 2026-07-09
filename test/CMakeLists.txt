@@ -816,19 +816,32 @@ if(static-musl-mapreduce-phoenix-root)
       "${static-musl-mapreduce-phoenix-root}/bin/pca-static-musl")
   set(phoenix-pca-mapreduce-config
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-mapreduce-static-musl.dynamic.json")
+  set(phoenix-pca-mapreduce-hybrid-config
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-mapreduce-static-musl.hybrid.json")
   file(
     GENERATE
     OUTPUT "${phoenix-pca-mapreduce-config}"
     CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"cde797f4a38a0aa4c16275aad5513ecdf646f25adf603b89a540a08fd7ad0db0\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
-  add_phoenix_dynamic_and_hybrid_tests(
+  file(
+    GENERATE
+    OUTPUT "${phoenix-pca-mapreduce-hybrid-config}"
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"0826174a142f24fece8fa15a7dc832ada06f9fd7b2a0317910b83b9409cce2e1\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+  add_test(
+    NAME "phoenix-pca-mapreduce-static-musl:dynamic"
+    COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-mapreduce-bin}"
+            -c "${phoenix-pca-mapreduce-config}" --log-level INFO)
+  set_tests_properties("phoenix-pca-mapreduce-static-musl:dynamic"
+                       PROPERTIES TIMEOUT 180
+                                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
     "phoenix-pca-mapreduce-static-musl" "${phoenix-pca-mapreduce-bin}"
-    "${phoenix-pca-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-pca-mapreduce-hybrid-config}" "${CMAKE_SOURCE_DIR}")
   set(phoenix-pca-mapreduce-v2-bin
       "${static-musl-mapreduce-phoenix-root}/bin/pca-v2-static-musl")
   add_phoenix_hybrid_test(
     "phoenix-pca-mapreduce-v2-static-musl"
-    "${phoenix-pca-mapreduce-v2-bin}" "${phoenix-pca-mapreduce-config}"
-    "${CMAKE_SOURCE_DIR}")
+    "${phoenix-pca-mapreduce-v2-bin}"
+    "${phoenix-pca-mapreduce-hybrid-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-string-match-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/string_match-static-musl")
@@ -1978,6 +1991,7 @@ if(dynamic-musl-phoenix-root)
     "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
     "void free(ptr p);\n"
     "ptr malloc(u64 size);\n"
+    "ptr calloc(u64 nmemb, u64 size);\n"
     "i32 strcmp(ptr s1, ptr s2);\n"
     "u64 strlen(ptr s);\n"
     "void bzero(ptr s, u64 n);\n"

@@ -1701,10 +1701,22 @@ void arm64_translation_context::materialise_vector_insert(const vector_insert_no
         builder_.insert_comment("Insert packed vector element by first copying source to destination");
         builder_.move(variable(out), variable(source));
 
+        std::vector<register_operand> out_bits;
+        out_bits.reserve(out.size());
+        for (const auto &reg : out) {
+            if (reg.type().is_floating_point()) {
+                auto bits = var_alloc_.allocate(value_type::u(reg.type().element_width()));
+                builder_.move(variable(bits), variable(reg));
+                out_bits.push_back(bits[0]);
+            } else {
+                out_bits.push_back(reg);
+            }
+        }
+
         std::size_t insert_from = n.index() * n.val().type().element_width();
         std::size_t insert_len = n.insert_value().type().width();
-        std::size_t dest_idx = insert_from / out[0].type().element_width();
-        std::size_t insert_idx = insert_from % out[0].type().element_width();
+        std::size_t dest_idx = insert_from / out_bits[0].type().element_width();
+        std::size_t insert_idx = insert_from % out_bits[0].type().element_width();
         std::size_t inserted = 0;
 
         [[unlikely]]
@@ -1726,14 +1738,16 @@ void arm64_translation_context::materialise_vector_insert(const vector_insert_no
                                 n.insert_value().type(), n.index());
         for (std::size_t bits_idx = 0; inserted < insert_len; ++dest_idx) {
             auto chunk_len = std::min(insert_len - inserted,
-                                      out[dest_idx].type().element_width() - insert_idx);
-            auto insert = insert_bits_as(insert_value[bits_idx], out[dest_idx].type());
-            builder_.bfi(out[dest_idx], insert, insert_idx, chunk_len);
+                                      out_bits[dest_idx].type().element_width() - insert_idx);
+            auto insert = insert_bits_as(insert_value[bits_idx], out_bits[dest_idx].type());
+            builder_.bfi(out_bits[dest_idx], insert, insert_idx, chunk_len);
 
             inserted += chunk_len;
             insert_idx = 0;
             bits_idx = inserted / insert_value[0].type().element_width();
         }
+        if (out[0].type().is_floating_point())
+            builder_.move(variable(out), variable(value(out_bits.begin(), out_bits.end())));
         return;
     }
 

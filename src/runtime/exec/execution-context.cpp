@@ -611,9 +611,13 @@ int execution_context::internal_call(void *cpu_state, int call) {
         }
         case 203: // sched_set_affinity
             util::global_logger.debug("System call: sched_set_affinity()\n");
-            x86_state->RAX = native_syscall(
-                __NR_sched_setaffinity, x86_state->RDI, x86_state->RSI,
-                (uintptr_t)get_memory_ptr((int64_t)x86_state->RDX));
+            if (std::getenv("ARANCINI_GUEST_CPUS")) {
+                x86_state->RAX = 0;
+            } else {
+                x86_state->RAX = native_syscall(
+                    __NR_sched_setaffinity, x86_state->RDI, x86_state->RSI,
+                    (uintptr_t)get_memory_ptr((int64_t)x86_state->RDX));
+            }
             break;
         case 204: // sched_get_affinity
         {
