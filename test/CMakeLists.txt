@@ -731,6 +731,12 @@ if(static-musl-mapreduce-phoenix-root)
     "phoenix-histogram-mapreduce-static-musl"
     "${phoenix-histogram-mapreduce-bin}"
     "${phoenix-histogram-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+  set(phoenix-histogram-mapreduce-v2-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/histogram-v2-static-musl")
+  add_phoenix_hybrid_test(
+    "phoenix-histogram-mapreduce-v2-static-musl"
+    "${phoenix-histogram-mapreduce-v2-bin}"
+    "${phoenix-histogram-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/kmeans-static-musl")
@@ -743,6 +749,12 @@ if(static-musl-mapreduce-phoenix-root)
   add_phoenix_dynamic_and_hybrid_tests(
     "phoenix-kmeans-mapreduce-static-musl" "${phoenix-kmeans-mapreduce-bin}"
     "${phoenix-kmeans-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+  set(phoenix-kmeans-mapreduce-v2-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/kmeans-v2-static-musl")
+  add_phoenix_hybrid_test(
+    "phoenix-kmeans-mapreduce-v2-static-musl"
+    "${phoenix-kmeans-mapreduce-v2-bin}" "${phoenix-kmeans-mapreduce-config}"
+    "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/linear_regression-static-musl")
@@ -761,6 +773,12 @@ if(static-musl-mapreduce-phoenix-root)
   add_phoenix_dynamic_and_hybrid_tests(
     "phoenix-linear-regression-mapreduce-static-musl"
     "${phoenix-linear-regression-mapreduce-bin}"
+    "${phoenix-linear-regression-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+  set(phoenix-linear-regression-mapreduce-v2-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/linear_regression-v2-static-musl")
+  add_phoenix_hybrid_test(
+    "phoenix-linear-regression-mapreduce-v2-static-musl"
+    "${phoenix-linear-regression-mapreduce-v2-bin}"
     "${phoenix-linear-regression-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-matrix-multiply-mapreduce-bin
@@ -786,6 +804,13 @@ if(static-musl-mapreduce-phoenix-root)
     "${phoenix-matrix-multiply-mapreduce-bin}"
     "${phoenix-matrix-multiply-mapreduce-config}"
     "${phoenix-matrix-multiply-mapreduce-workdir}")
+  set(phoenix-matrix-multiply-mapreduce-v2-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/matrix_multiply-v2-static-musl")
+  add_phoenix_hybrid_test(
+    "phoenix-matrix-multiply-mapreduce-v2-static-musl"
+    "${phoenix-matrix-multiply-mapreduce-v2-bin}"
+    "${phoenix-matrix-multiply-mapreduce-config}"
+    "${phoenix-matrix-multiply-mapreduce-workdir}")
 
   set(phoenix-pca-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/pca-static-musl")
@@ -798,6 +823,12 @@ if(static-musl-mapreduce-phoenix-root)
   add_phoenix_dynamic_and_hybrid_tests(
     "phoenix-pca-mapreduce-static-musl" "${phoenix-pca-mapreduce-bin}"
     "${phoenix-pca-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+  set(phoenix-pca-mapreduce-v2-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/pca-v2-static-musl")
+  add_phoenix_hybrid_test(
+    "phoenix-pca-mapreduce-v2-static-musl"
+    "${phoenix-pca-mapreduce-v2-bin}" "${phoenix-pca-mapreduce-config}"
+    "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-string-match-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/string_match-static-musl")
@@ -817,6 +848,12 @@ if(static-musl-mapreduce-phoenix-root)
     "phoenix-string-match-mapreduce-static-musl"
     "${phoenix-string-match-mapreduce-bin}"
     "${phoenix-string-match-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+  set(phoenix-string-match-mapreduce-v2-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/string_match-v2-static-musl")
+  add_phoenix_hybrid_test(
+    "phoenix-string-match-mapreduce-v2-static-musl"
+    "${phoenix-string-match-mapreduce-v2-bin}"
+    "${phoenix-string-match-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-word-count-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/word_count-static-musl")
@@ -835,6 +872,12 @@ if(static-musl-mapreduce-phoenix-root)
   add_phoenix_dynamic_and_hybrid_tests(
     "phoenix-word-count-mapreduce-static-musl"
     "${phoenix-word-count-mapreduce-bin}"
+    "${phoenix-word-count-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+  set(phoenix-word-count-mapreduce-v2-bin
+      "${static-musl-mapreduce-phoenix-root}/bin/word_count-v2-static-musl")
+  add_phoenix_hybrid_test(
+    "phoenix-word-count-mapreduce-v2-static-musl"
+    "${phoenix-word-count-mapreduce-v2-bin}"
     "${phoenix-word-count-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
 endif()
 

@@ -868,6 +868,13 @@ EOF
             ];
             testRegex = "^phoenix-histogram-mapreduce-static-musl:hybrid$";
           };
+          phoenix-histogram-mapreduce-v2-static-musl-hybrid = mkPhoenixCheck {
+            name = "arancini-phoenix-histogram-mapreduce-v2-static-musl-hybrid";
+            cmakeFlags = [
+              "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
+            ];
+            testRegex = "^phoenix-histogram-mapreduce-v2-static-musl:hybrid$";
+          };
           phoenix-kmeans-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-mapreduce-static-musl-dynamic-no-static";
             cmakeFlags = [
@@ -881,6 +888,13 @@ EOF
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
             testRegex = "^phoenix-kmeans-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-kmeans-mapreduce-v2-static-musl-hybrid = mkPhoenixCheck {
+            name = "arancini-phoenix-kmeans-mapreduce-v2-static-musl-hybrid";
+            cmakeFlags = [
+              "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
+            ];
+            testRegex = "^phoenix-kmeans-mapreduce-v2-static-musl:hybrid$";
           };
           phoenix-linear-regression-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-mapreduce-static-musl-dynamic-no-static";
@@ -896,6 +910,13 @@ EOF
             ];
             testRegex = "^phoenix-linear-regression-mapreduce-static-musl:hybrid$";
           };
+          phoenix-linear-regression-mapreduce-v2-static-musl-hybrid = mkPhoenixCheck {
+            name = "arancini-phoenix-linear-regression-mapreduce-v2-static-musl-hybrid";
+            cmakeFlags = [
+              "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
+            ];
+            testRegex = "^phoenix-linear-regression-mapreduce-v2-static-musl:hybrid$";
+          };
           phoenix-matrix-multiply-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-mapreduce-static-musl-dynamic-no-static";
             cmakeFlags = [
@@ -909,6 +930,13 @@ EOF
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
             testRegex = "^phoenix-matrix-multiply-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-matrix-multiply-mapreduce-v2-static-musl-hybrid = mkPhoenixCheck {
+            name = "arancini-phoenix-matrix-multiply-mapreduce-v2-static-musl-hybrid";
+            cmakeFlags = [
+              "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
+            ];
+            testRegex = "^phoenix-matrix-multiply-mapreduce-v2-static-musl:hybrid$";
           };
           phoenix-pca-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-mapreduce-static-musl-dynamic-no-static";
@@ -924,6 +952,13 @@ EOF
             ];
             testRegex = "^phoenix-pca-mapreduce-static-musl:hybrid$";
           };
+          phoenix-pca-mapreduce-v2-static-musl-hybrid = mkPhoenixCheck {
+            name = "arancini-phoenix-pca-mapreduce-v2-static-musl-hybrid";
+            cmakeFlags = [
+              "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
+            ];
+            testRegex = "^phoenix-pca-mapreduce-v2-static-musl:hybrid$";
+          };
           phoenix-string-match-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-mapreduce-static-musl-dynamic-no-static";
             cmakeFlags = [
@@ -938,6 +973,13 @@ EOF
             ];
             testRegex = "^phoenix-string-match-mapreduce-static-musl:hybrid$";
           };
+          phoenix-string-match-mapreduce-v2-static-musl-hybrid = mkPhoenixCheck {
+            name = "arancini-phoenix-string-match-mapreduce-v2-static-musl-hybrid";
+            cmakeFlags = [
+              "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
+            ];
+            testRegex = "^phoenix-string-match-mapreduce-v2-static-musl:hybrid$";
+          };
           phoenix-word-count-mapreduce-static-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-mapreduce-static-musl-dynamic-no-static";
             cmakeFlags = [
@@ -951,6 +993,13 @@ EOF
               "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
             ];
             testRegex = "^phoenix-word-count-mapreduce-static-musl:hybrid$";
+          };
+          phoenix-word-count-mapreduce-v2-static-musl-hybrid = mkPhoenixCheck {
+            name = "arancini-phoenix-word-count-mapreduce-v2-static-musl-hybrid";
+            cmakeFlags = [
+              "-Dstatic-musl-mapreduce-phoenix-root=${phoenix-mapreduce}"
+            ];
+            testRegex = "^phoenix-word-count-mapreduce-v2-static-musl:hybrid$";
           };
           phoenix-histogram-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-pthread-musl-dynamic-no-static";
