@@ -770,7 +770,20 @@ if(static-musl-mapreduce-phoenix-root)
     GENERATE
     OUTPUT "${phoenix-linear-regression-mapreduce-config}"
     CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"${phoenix-linear-regression-mapreduce-input}\"],\n    \"expected_stdout_sha256\": \"a1d50f2603f02d7d4046fb0b45a5c088befd3fa549102f2cb817111e8fc65302\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
-  add_phoenix_dynamic_and_hybrid_tests(
+  add_test(
+    NAME "phoenix-linear-regression-mapreduce-static-musl:dynamic"
+    COMMAND
+      ${tester} -t "$<TARGET_FILE:txlat>" -i
+      "${phoenix-linear-regression-mapreduce-bin}" -c
+      "${phoenix-linear-regression-mapreduce-config}" --log-level INFO
+      --replace-stdout-for-sha256
+      "^Linear Regression: Completed -?[0-9]+$"
+      "Linear Regression: Completed 0")
+  set_tests_properties(
+    "phoenix-linear-regression-mapreduce-static-musl:dynamic"
+    PROPERTIES TIMEOUT 180
+               WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  add_phoenix_hybrid_test(
     "phoenix-linear-regression-mapreduce-static-musl"
     "${phoenix-linear-regression-mapreduce-bin}"
     "${phoenix-linear-regression-mapreduce-config}" "${CMAKE_SOURCE_DIR}")

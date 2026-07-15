@@ -197,7 +197,7 @@ void arm64_translation_context::chain(uint64_t chain_address, void *chain_target
     }
 
     std::uint32_t imm26 = (static_cast<std::uint32_t>(delta >> 2) & 0x03ffffffu);
-    *patch = 0x14000000u | imm26;
+    __atomic_store_n(patch, 0x14000000u | imm26, __ATOMIC_RELEASE);
     __builtin___clear_cache(reinterpret_cast<char *>(patch),
                             reinterpret_cast<char *>(patch + 1));
 }
@@ -645,49 +645,47 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
             return;
         }
 
-        // The input and the output have the same size:
-        // For 32-bit multiplication: 64-bit output and signed-extended 32-bit values to 64-bit inputs
-        // For 64-bit multiplication: 64-bit output and signed-extended 64-bit values to 128-bit inputs
-        // NOTE: this is very unfortunate
+        // Integer multiply nodes contain twice-wide operands and results so
+        // that the x86 multiply flags can be computed before truncation.
         switch (n.val().type().element_width()) {
         case 32:
-            if (n.val().type().type_class() == ir::value_type_class::floating_point) {
-                builder_.fmul(dest_regset[0], lhs_regset[0], rhs_regset[0]);
-                sets_flags = false;
-                break;
-            }
-            [[fallthrough]];
-        case 64: // integer multiply here produces a 64-bit result from 32-bit inputs
+        case 64: {
             if (n.val().type().type_class() == ir::value_type_class::floating_point) {
                 builder_.fmul(dest_regset[0], lhs_regset[0], rhs_regset[0]);
                 sets_flags = false;
                 break;
             }
 
-            // Cast integer LHS and RHS to 32-bits.
-            // NOTE: this is guaranteed to yield the same value because we're doing 32-bit
-            //       multiplication
-            lhs_regset[0].cast(ir::value_type(lhs_regset[0].type().type_class(), 32, 1));
-            rhs_regset[0].cast(ir::value_type(rhs_regset[0].type().type_class(), 32, 1));
+            if (n.val().type().element_width() == 32) {
+                // A 16-bit multiply has a complete 32-bit result.  SMULL and
+                // UMULL require a 64-bit destination, so use the low multiply.
+                builder_.mul(dest_regset[0], lhs_regset[0], rhs_regset[0]);
+            } else {
+                auto lhs = lhs_regset[0];
+                auto rhs = rhs_regset[0];
+                lhs.cast(ir::value_type(lhs.type().type_class(), 32, 1));
+                rhs.cast(ir::value_type(rhs.type().type_class(), 32, 1));
 
-            switch (n.val().type().type_class()) {
-            case ir::value_type_class::signed_integer:
-                builder_.smull(dest_regset, lhs_regset, rhs_regset);
-                break;
-            case ir::value_type_class::unsigned_integer:
-                builder_.umull(dest_regset, lhs_regset, rhs_regset);
-                break;
-            default:
-                throw backend_exception("Encounted unknown type class {} for multiplication",
-                                        util::to_underlying(n.val().type().type_class()));
+                switch (n.val().type().type_class()) {
+                case ir::value_type_class::signed_integer:
+                    builder_.smull(dest_regset[0], lhs, rhs);
+                    break;
+                case ir::value_type_class::unsigned_integer:
+                    builder_.umull(dest_regset[0], lhs, rhs);
+                    break;
+                default:
+                    throw backend_exception("Encounted unknown type class {} for multiplication",
+                                            util::to_underlying(n.val().type().type_class()));
+                }
             }
-            // TODO: need to compute CF and OF
-            // CF and OF are set to 1 when lhs * rhs > 64-bits
-            // Otherwise they are set to 0
+
             if (sets_flags) {
-                auto compare_regset = var_alloc_.allocate(dest_regset[0].type());
-                builder_.move(variable(compare_regset), 0xFFFF0000);
-                builder_.compare(variable(compare_regset), variable(dest_regset));
+                auto half_type = ir::value_type(
+                    n.val().type().type_class(),
+                    n.val().type().element_width() / 2, 1);
+                auto truncated_result = cast(dest_regset[0], half_type);
+                auto extended_result = cast(truncated_result, n.val().type());
+                builder_.compare(variable(extended_result), variable(dest_regset));
 
                 builder_.insert_comment("compute flag: CF");
                 builder_.conditional_set(variable(flag_map[reg_offsets::CF]), cond_operand::ne());
@@ -697,6 +695,7 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
                 sets_flags = false;
             }
             break;
+        }
         case 128: // this must perform 64-bit multiplication
             // Integers handled differently than floats
             [[likely]]
@@ -1050,7 +1049,13 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
     [[likely]]
     if (sets_flags) {
         builder_.setz(flag_map[reg_offsets::ZF]).add_comment("compute flag: ZF");
-        builder_.sets(flag_map[reg_offsets::SF]).add_comment("compute flag: SF");
+        if (n.val().type().element_width() < 32) {
+            builder_.ubfx(flag_map[reg_offsets::SF], dest_regset[0],
+                          n.val().type().element_width() - 1, 1)
+                .add_comment("compute flag: SF");
+        } else {
+            builder_.sets(flag_map[reg_offsets::SF]).add_comment("compute flag: SF");
+        }
         builder_.seto(flag_map[reg_offsets::OF]).add_comment("compute flag: OF");
 
         // ARM computes flags in the same way as x86 for subtraction

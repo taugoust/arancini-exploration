@@ -1163,10 +1163,9 @@ public:
                      const memory_operand& address,
                      std::memory_order mem_order = default_memory_order)
     {
-        register_operand old = vreg_alloc_.allocate(out.type());
-        append(arm64_assembler::mov(old, out));
-        atomic_add(out, source, address, mem_order);
-        append(arm64_assembler::mov(source, old));
+        auto result = vreg_alloc_.allocate(out.type());
+        atomic_add(result, source, address, mem_order);
+        sub(out, result, source);
     }
 
     void atomic_clr(const register_operand& out, const register_operand& source,

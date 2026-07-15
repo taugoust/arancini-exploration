@@ -13,6 +13,7 @@ import logging
 import argparse
 import traceback
 import subprocess
+import re
 
 logger = logging.getLogger("Test Runner")
 
@@ -128,7 +129,11 @@ class Tester:
 
         self.compare_output(self.config["expected_stdout"], stdout)
         self.compare_output(self.config["expected_stderr"], stderr)
-        self.compare_output_hash("stdout", self.config["expected_stdout_sha256"], stdout)
+        stdout_for_hash = stdout
+        for pattern, replacement in stdout_sha256_replacements:
+            stdout_for_hash = re.sub(pattern, replacement, stdout_for_hash,
+                                     flags=re.MULTILINE)
+        self.compare_output_hash("stdout", self.config["expected_stdout_sha256"], stdout_for_hash)
         self.compare_output_hash("stderr", self.config["expected_stderr_sha256"], stderr)
 
     def __del__(self):
@@ -268,6 +273,14 @@ def parse_arguments():
                         action='append',
                         help='Remove a compile flag loaded from the JSON config before translation')
 
+    parser.add_argument('--replace-stdout-for-sha256',
+                        required=False,
+                        default=[],
+                        action='append',
+                        nargs=2,
+                        metavar=('REGEX', 'REPLACEMENT'),
+                        help='Apply a regex replacement before hashing stdout')
+
     args = parser.parse_args()
 
     # TODO: refactor parsing here to directly store those flags
@@ -285,6 +298,9 @@ def parse_arguments():
 
     global drop_compile_flags
     drop_compile_flags = args.drop_compile_flag
+
+    global stdout_sha256_replacements
+    stdout_sha256_replacements = args.replace_stdout_for_sha256
 
     return args
 

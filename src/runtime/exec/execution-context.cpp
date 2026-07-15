@@ -173,11 +173,11 @@ int execution_context::invoke(void *cpu_state) {
         return 1;
     }
 
-    // Do not patch translated code while other translated threads may be
-    // executing it.  The dynamic backend's direct-branch chaining is a
-    // process-wide code modification, but pthread workloads can concurrently
-    // execute the same translation cache entries from multiple native threads.
-    // Leaving the indirect trampoline in place is slower but thread-safe.
+    if (et->chain_address_) {
+        util::global_logger.info("Chaining previous block to {:#x}\n",
+                                 util::copy(x86_state->PC));
+        te_.chain(et->chain_address_, txln->get_code_ptr());
+    }
 
     pthread_mutex_unlock(&big_fat_lock);
     const dbt::native_call_result result = txln->invoke(cpu_state);
