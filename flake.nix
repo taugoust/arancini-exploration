@@ -254,6 +254,43 @@ EOF
               touch "$out/passed"
             '';
 
+          static-llvm-x87-extended-store = native_pkgs.runCommand
+            "arancini-static-llvm-x87-extended-store"
+            {
+              nativeBuildInputs = with native_pkgs; [
+                clang_18
+                gcc
+                llvmPackages_18.lld
+              ];
+            }
+            ''
+              cp ${self.outPath}/test/static-llvm-x87-extended-store.S x87-store.S
+              clang --target=x86_64-unknown-linux-gnu -nostdlib -static \
+                -fuse-ld=lld -Wl,--build-id=none,-e,_start \
+                -o x87-store.x86_64 x87-store.S
+
+              ln -s ${self.outPath}/aarch64.exec.lds
+              ARANCINI_ENABLE_LOG=false ${arancini-package}/bin/txlat \
+                --input x87-store.x86_64 --output x87-store.aarch64 \
+                --cxx-compiler-path clang++ \
+                --runtime-lib-path \
+                  ${arancini-package}/lib/libarancini-runtime.so \
+                --dump-llvm x87-store
+
+              grep -q "store i80" x87-store.ll
+              ! grep -q "i0" x87-store.ll
+
+              printf 'ok\n' > expected.stdout
+              ARANCINI_ENABLE_LOG=false \
+                LD_LIBRARY_PATH=${arancini-package}/lib \
+                ./x87-store.aarch64 > actual.stdout 2> actual.stderr
+              cmp expected.stdout actual.stdout
+              test ! -s actual.stderr
+
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+
           phoenix-histogram-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-dynamic-no-static";
             cmakeFlags = [

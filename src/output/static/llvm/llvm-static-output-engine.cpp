@@ -606,7 +606,7 @@ Value *llvm_static_output_engine_impl::materialise_port(
             break;
         }
         case 80:
-            ty = types.f80;
+            ty = is_f ? types.f80 : types.i80;
             break;
         default:
             throw std::runtime_error("unsupported constant width: " +
@@ -1470,7 +1470,7 @@ Value *llvm_static_output_engine_impl::materialise_port(
             builder.CreateShl(ones, ConstantInt::get(tmp->getType(), bin->to()),
                               "bit_insert gen mask");
         auto inv_mask = builder.CreateXor(
-            mask, ConstantInt::get(mask->getType(), -1), "Neg mask");
+            mask, ConstantInt::getAllOnesValue(mask->getType()), "Neg mask");
 
         auto insert = builder.CreateAnd(
             builder.CreateShl(
