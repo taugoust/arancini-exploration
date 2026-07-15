@@ -216,7 +216,8 @@ EOF
           };
 
         defaultPackage = arancini-package;
-        checks = native_pkgs.lib.optionalAttrs (system == "aarch64-linux") {
+        checks =
+          native_pkgs.lib.optionalAttrs (system == "aarch64-linux") {
           static-llvm-integer-division = native_pkgs.runCommand
             "arancini-static-llvm-integer-division"
             {
@@ -290,7 +291,12 @@ EOF
               mkdir -p "$out"
               touch "$out/passed"
             '';
-
+          }
+          # Reuse one system-parameterized Phoenix matrix for each native
+          # backend instead of maintaining architecture-specific copies.
+          // native_pkgs.lib.optionalAttrs
+            (builtins.elem system [ "aarch64-linux" "riscv64-linux" ])
+            {
           phoenix-histogram-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-dynamic-no-static";
             cmakeFlags = [
