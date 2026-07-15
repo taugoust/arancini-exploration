@@ -50,28 +50,31 @@ set(static-musl-phoenix-path
     CACHE PATH "Path to static-musl-phoenix executables")
 set(static-musl-phoenix-root
     ""
-    CACHE PATH "Path to Phoenix x86_64 musl static package root (with bin/ and data/)")
+    CACHE PATH "Path to Phoenix x86_64 musl static package root (with bin/)")
 set(static-musl-pthread-phoenix-root
     ""
-    CACHE PATH "Path to Phoenix x86_64 musl static pthread package root (with bin/ and data/)")
+    CACHE PATH "Path to Phoenix x86_64 musl static pthread package root (with bin/)")
 set(static-musl-mapreduce-phoenix-root
     ""
-    CACHE PATH "Path to Phoenix x86_64 musl static mapreduce package root (with bin/ and data/)")
+    CACHE PATH "Path to Phoenix x86_64 musl static mapreduce package root (with bin/)")
 set(static-glibc-pthread-phoenix-root
     ""
-    CACHE PATH "Path to Phoenix x86_64 glibc static pthread package root (with bin/ and data/)")
+    CACHE PATH "Path to Phoenix x86_64 glibc static pthread package root (with bin/)")
 set(dynamic-phoenix-root
     ""
     CACHE PATH "Path to dynamically linked Phoenix x86_64 package root (with bin/)")
 set(dynamic-musl-phoenix-root
     ""
-    CACHE PATH "Path to dynamically linked Phoenix x86_64 musl package root (with bin/ and data/)")
+    CACHE PATH "Path to dynamically linked Phoenix x86_64 musl package root (with bin/)")
 set(dynamic-musl-pthread-phoenix-root
     ""
-    CACHE PATH "Path to dynamically linked Phoenix x86_64 musl pthread package root (with bin/ and data/)")
+    CACHE PATH "Path to dynamically linked Phoenix x86_64 musl pthread package root (with bin/)")
 set(dynamic-glibc-pthread-phoenix-root
     ""
-    CACHE PATH "Path to dynamically linked Phoenix x86_64 glibc pthread package root (with bin/ and data/)")
+    CACHE PATH "Path to dynamically linked Phoenix x86_64 glibc pthread package root (with bin/)")
+set(phoenix-data-root
+    ""
+    CACHE PATH "Path to Phoenix benchmark input data")
 set(host-libatomic-libdir
     ""
     CACHE PATH "Path to host libatomic directory for translated test executables")
@@ -114,7 +117,7 @@ if(static-musl-phoenix-root)
   set(phoenix-histogram-bin
       "${static-musl-phoenix-root}/bin/histogram-seq-static-musl")
   set(phoenix-histogram-input
-      "${static-musl-phoenix-root}/data/histogram_datafiles/small.bmp")
+      "${phoenix-data-root}/histogram_datafiles/small.bmp")
   set(phoenix-histogram-config
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-seq-static-musl.dynamic.json")
   set(phoenix-histogram-hybrid-config
@@ -385,7 +388,7 @@ if(static-musl-pthread-phoenix-root)
   set(phoenix-histogram-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/histogram-pthread-static-musl")
   set(phoenix-histogram-pthread-input
-      "${static-musl-pthread-phoenix-root}/data/histogram_datafiles/small.bmp")
+      "${phoenix-data-root}/histogram_datafiles/small.bmp")
   set(phoenix-histogram-pthread-config
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-static-musl.dynamic.json")
 
@@ -746,7 +749,7 @@ if(static-musl-mapreduce-phoenix-root)
   set(phoenix-histogram-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/histogram-static-musl")
   set(phoenix-histogram-mapreduce-input
-      "${static-musl-mapreduce-phoenix-root}/data/histogram_datafiles/small.bmp")
+      "${phoenix-data-root}/histogram_datafiles/small.bmp")
   set(phoenix-histogram-mapreduce-config
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-mapreduce-static-musl.dynamic.json")
   file(
@@ -941,7 +944,7 @@ if(static-glibc-pthread-phoenix-root)
   set(phoenix-histogram-pthread-static-glibc-bin
       "${static-glibc-pthread-phoenix-root}/bin/histogram-pthread-static-glibc")
   set(phoenix-histogram-pthread-static-glibc-input
-      "${static-glibc-pthread-phoenix-root}/data/histogram_datafiles/small.bmp")
+      "${phoenix-data-root}/histogram_datafiles/small.bmp")
   set(phoenix-histogram-pthread-static-glibc-config
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-static-glibc.dynamic.json")
 
@@ -1188,7 +1191,7 @@ if(dynamic-glibc-pthread-phoenix-root)
   set(phoenix-histogram-pthread-glibc-bin
       "${dynamic-glibc-pthread-phoenix-root}/bin/histogram-pthread-v2")
   set(phoenix-histogram-pthread-glibc-input
-      "${dynamic-glibc-pthread-phoenix-root}/data/histogram_datafiles/small.bmp")
+      "${phoenix-data-root}/histogram_datafiles/small.bmp")
   set(phoenix-histogram-pthread-glibc-config
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-glibc.dynamic.json")
   file(
@@ -1342,7 +1345,7 @@ if(dynamic-musl-pthread-phoenix-root)
   set(phoenix-histogram-pthread-musl-bin
       "${dynamic-musl-pthread-phoenix-root}/bin/histogram-pthread-v2")
   set(phoenix-histogram-pthread-musl-input
-      "${dynamic-musl-pthread-phoenix-root}/data/histogram_datafiles/small.bmp")
+      "${phoenix-data-root}/histogram_datafiles/small.bmp")
   set(phoenix-histogram-pthread-musl-nlib
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-pthread-musl.nlib")
   set(phoenix-histogram-pthread-musl-config
@@ -1777,7 +1780,7 @@ if(dynamic-musl-phoenix-root)
   set(phoenix-histogram-musl-bin
       "${dynamic-musl-phoenix-root}/bin/histogram-seq-v2")
   set(phoenix-histogram-musl-input
-      "${dynamic-musl-phoenix-root}/data/histogram_datafiles/small.bmp")
+      "${phoenix-data-root}/histogram_datafiles/small.bmp")
   set(phoenix-histogram-musl-nlib
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-histogram-musl.nlib")
   set(phoenix-histogram-musl-config

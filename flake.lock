@@ -73,11 +73,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784104318,
-        "narHash": "sha256-cADn+vsQ/GNtjK626WV6UUt/eiPwXOfpZQW3JXXeEvE=",
+        "lastModified": 1784138338,
+        "narHash": "sha256-QiVGsip7pw4yBPmb4abcjLdLzsQmToSmm5g39ywupZI=",
         "ref": "refs/heads/master",
-        "rev": "89dd3084f704cc395d7a49fc092e9e75bb0a2534",
-        "revCount": 12,
+        "rev": "d5a554e821ee49c843615a2511b90aee7791b5d5",
+        "revCount": 13,
         "type": "git",
         "url": "https://github.com/taugoust/phoenix.git"
       },

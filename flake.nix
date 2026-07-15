@@ -127,6 +127,8 @@
           cmakeFlags = [ "-DBUILD_TESTS=1" ];
         };
         phoenixPackages = phoenix.packages.x86_64-linux;
+        phoenixHistogramData = phoenix.packages.${system}.phoenix-input-data-histogram;
+        phoenixData = phoenix.packages.${system}.phoenix-input-data;
         phoenix-seq = phoenixPackages.phoenix-x86_64-musl-static-seq;
         phoenix-pthread = phoenixPackages.phoenix-x86_64-musl-static-pthread;
         phoenix-mapreduce = phoenixPackages.phoenix-x86_64-musl-static-all;
@@ -141,6 +143,13 @@
             cmakeFlags ? [ ],
             testRegex,
           }:
+          let
+            checkCmakeFlags =
+              native_pkgs.lib.optionals (native_pkgs.lib.hasInfix "histogram" testRegex) [
+                "-Dphoenix-data-root=${phoenixHistogramData}"
+              ]
+              ++ cmakeFlags;
+          in
           native_pkgs.runCommand name
             {
               nativeBuildInputs = with native_pkgs; [
@@ -175,7 +184,8 @@ enable_testing()
 add_subdirectory("${self.outPath}/test" test)
 EOF
 
-              cmake -S test-src -B build ${native_pkgs.lib.escapeShellArgs cmakeFlags}
+              cmake -S test-src -B build \
+                ${native_pkgs.lib.escapeShellArgs checkCmakeFlags}
               ctest --test-dir build --output-on-failure --no-tests=error \
                 -R ${native_pkgs.lib.escapeShellArg testRegex}
 
@@ -206,8 +216,12 @@ EOF
           {
             default = native_pkgs.mkShell commonArgs;
             full = native_pkgs.mkShell (commonArgs // {
-              packages = commonArgs.packages ++ [ phoenix-mapreduce ];
+              packages = commonArgs.packages ++ [
+                phoenix-mapreduce
+                phoenixData
+              ];
               PHOENIX_ROOT = "${phoenix-mapreduce}";
+              PHOENIX_DATA_ROOT = "${phoenixData}";
             });
           };
 
