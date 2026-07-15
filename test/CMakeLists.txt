@@ -11,7 +11,7 @@ function(add_phoenix_hybrid_test testname input_bin config workdir)
     NAME "${testname}:hybrid"
     COMMAND ${tester} --drop-compile-flag=--no-static -t
             "$<TARGET_FILE:txlat>" -i "${input_bin}" -c "${config}"
-            --log-level INFO)
+            --log-level INFO ${ARGN})
   set_tests_properties("${testname}:hybrid"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${workdir}")
@@ -21,13 +21,19 @@ function(add_phoenix_dynamic_and_hybrid_tests testname input_bin config workdir)
   add_test(
     NAME "${testname}:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${input_bin}" -c
-            "${config}" --log-level INFO)
+            "${config}" --log-level INFO ${ARGN})
   set_tests_properties("${testname}:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${workdir}")
   add_phoenix_hybrid_test("${testname}" "${input_bin}" "${config}"
-                          "${workdir}")
+                          "${workdir}" ${ARGN})
 endfunction()
+
+# Phoenix reports only the difference between gettimeofday() tv_sec fields,
+# which changes when an otherwise identical run crosses a wall-clock boundary.
+set(phoenix-string-match-hash-args
+    --replace-stdout-for-sha256 "^String Match: Completed -?[0-9]+$"
+    "String Match: Completed 0")
 
 set(static-musl-phoenix-path
     "share/static-musl-phoenix"
@@ -276,7 +282,8 @@ if(static-musl-phoenix-root)
     NAME "phoenix-string-match-seq-static-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-bin}" -c
-            "${phoenix-string-match-config}" --log-level INFO)
+            "${phoenix-string-match-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -285,7 +292,8 @@ if(static-musl-phoenix-root)
     NAME "phoenix-string-match-seq-static-musl:hybrid"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-bin}" -c
-            "${phoenix-string-match-hybrid-config}" --log-level INFO)
+            "${phoenix-string-match-hybrid-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-static-musl:hybrid"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -639,27 +647,31 @@ if(static-musl-pthread-phoenix-root)
     NAME "phoenix-string-match-pthread-static-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-pthread-bin}" -c
-            "${phoenix-string-match-pthread-config}" --log-level INFO)
+            "${phoenix-string-match-pthread-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-string-match-pthread-static-musl"
     "${phoenix-string-match-pthread-bin}"
-    "${phoenix-string-match-pthread-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-string-match-pthread-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-string-match-hash-args})
 
   add_test(
     NAME "phoenix-string-match-pthread-v2-static-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-pthread-v2-bin}" -c
-            "${phoenix-string-match-pthread-v2-config}" --log-level INFO)
+            "${phoenix-string-match-pthread-v2-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-string-match-pthread-v2-static-musl"
     "${phoenix-string-match-pthread-v2-bin}"
-    "${phoenix-string-match-pthread-v2-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-string-match-pthread-v2-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-string-match-hash-args})
 
   set(phoenix-word-count-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/word_count-pthread-static-musl")
@@ -873,13 +885,15 @@ if(static-musl-mapreduce-phoenix-root)
   add_phoenix_dynamic_and_hybrid_tests(
     "phoenix-string-match-mapreduce-static-musl"
     "${phoenix-string-match-mapreduce-bin}"
-    "${phoenix-string-match-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-string-match-mapreduce-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-string-match-hash-args})
   set(phoenix-string-match-mapreduce-v2-bin
       "${static-musl-mapreduce-phoenix-root}/bin/string_match-v2-static-musl")
   add_phoenix_hybrid_test(
     "phoenix-string-match-mapreduce-v2-static-musl"
     "${phoenix-string-match-mapreduce-v2-bin}"
-    "${phoenix-string-match-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-string-match-mapreduce-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-string-match-hash-args})
 
   set(phoenix-word-count-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/word_count-static-musl")
@@ -1056,7 +1070,7 @@ if(static-glibc-pthread-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-pthread-static-glibc-bin}" -c
             "${phoenix-string-match-pthread-static-glibc-config}"
-            --log-level INFO)
+            --log-level INFO ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-static-glibc:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -1278,7 +1292,8 @@ if(dynamic-glibc-pthread-phoenix-root)
     NAME "phoenix-string-match-pthread-glibc:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-pthread-glibc-bin}" -c
-            "${phoenix-string-match-pthread-glibc-config}" --log-level INFO)
+            "${phoenix-string-match-pthread-glibc-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-glibc:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -1661,7 +1676,8 @@ if(dynamic-musl-pthread-phoenix-root)
     NAME "phoenix-string-match-pthread-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-pthread-musl-bin}" -c
-            "${phoenix-string-match-pthread-musl-config}" --log-level INFO)
+            "${phoenix-string-match-pthread-musl-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -2025,7 +2041,8 @@ if(dynamic-musl-phoenix-root)
     NAME "phoenix-string-match-seq-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-musl-bin}" -c
-            "${phoenix-string-match-musl-config}" --log-level INFO)
+            "${phoenix-string-match-musl-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -2034,7 +2051,8 @@ if(dynamic-musl-phoenix-root)
     NAME "phoenix-string-match-seq-musl:hybrid"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-musl-bin}" -c
-            "${phoenix-string-match-musl-hybrid-config}" --log-level INFO)
+            "${phoenix-string-match-musl-hybrid-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-musl:hybrid"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -2534,7 +2552,8 @@ if(dynamic-phoenix-root)
     NAME "phoenix-string-match-seq-glibc:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-glibc-bin}" -c
-            "${phoenix-string-match-glibc-config}" --log-level INFO)
+            "${phoenix-string-match-glibc-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-glibc:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -2543,7 +2562,8 @@ if(dynamic-phoenix-root)
     NAME "phoenix-string-match-seq-glibc:hybrid"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-string-match-glibc-bin}" -c
-            "${phoenix-string-match-glibc-hybrid-config}" --log-level INFO)
+            "${phoenix-string-match-glibc-hybrid-config}" --log-level INFO
+            ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-glibc:hybrid"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
