@@ -35,6 +35,16 @@ set(phoenix-string-match-hash-args
     --replace-stdout-for-sha256 "^String Match: Completed -?[0-9]+$"
     "String Match: Completed 0")
 
+# The pthread and mapreduce word_count implementations use distinct labels for
+# the same whole-second wall-clock measurement. Normalize only those exact lines
+# when hashing output.
+set(phoenix-word-count-pthread-hash-args
+    --replace-stdout-for-sha256 "^Word Count: Completed -?[0-9]+$"
+    "Word Count: Completed 0")
+set(phoenix-word-count-mapreduce-hash-args
+    --replace-stdout-for-sha256 "^Wordcount: Completed -?[0-9]+$"
+    "Wordcount: Completed 0")
+
 set(static-musl-phoenix-path
     "share/static-musl-phoenix"
     CACHE PATH "Path to static-musl-phoenix executables")
@@ -704,26 +714,30 @@ if(static-musl-pthread-phoenix-root)
     NAME "phoenix-word-count-pthread-static-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-word-count-pthread-bin}" -c
-            "${phoenix-word-count-pthread-config}" --log-level INFO)
+            "${phoenix-word-count-pthread-config}" --log-level INFO
+            ${phoenix-word-count-pthread-hash-args})
   set_tests_properties("phoenix-word-count-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-word-count-pthread-static-musl" "${phoenix-word-count-pthread-bin}"
-    "${phoenix-word-count-pthread-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-word-count-pthread-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-word-count-pthread-hash-args})
 
   add_test(
     NAME "phoenix-word-count-pthread-v2-static-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-word-count-pthread-v2-bin}" -c
-            "${phoenix-word-count-pthread-v2-config}" --log-level INFO)
+            "${phoenix-word-count-pthread-v2-config}" --log-level INFO
+            ${phoenix-word-count-pthread-hash-args})
   set_tests_properties("phoenix-word-count-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT 180
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-word-count-pthread-v2-static-musl"
     "${phoenix-word-count-pthread-v2-bin}"
-    "${phoenix-word-count-pthread-v2-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-word-count-pthread-v2-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-word-count-pthread-hash-args})
 endif()
 
 if(static-musl-mapreduce-phoenix-root)
@@ -912,13 +926,15 @@ if(static-musl-mapreduce-phoenix-root)
   add_phoenix_dynamic_and_hybrid_tests(
     "phoenix-word-count-mapreduce-static-musl"
     "${phoenix-word-count-mapreduce-bin}"
-    "${phoenix-word-count-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-word-count-mapreduce-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-word-count-mapreduce-hash-args})
   set(phoenix-word-count-mapreduce-v2-bin
       "${static-musl-mapreduce-phoenix-root}/bin/word_count-v2-static-musl")
   add_phoenix_hybrid_test(
     "phoenix-word-count-mapreduce-v2-static-musl"
     "${phoenix-word-count-mapreduce-v2-bin}"
-    "${phoenix-word-count-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-word-count-mapreduce-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-word-count-mapreduce-hash-args})
 endif()
 
 if(static-glibc-pthread-phoenix-root)
