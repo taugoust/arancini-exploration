@@ -126,19 +126,15 @@
             				'';
           cmakeFlags = [ "-DBUILD_TESTS=1" ];
         };
-        phoenix-seq = phoenix.packages.${system}.phoenix-x86_64-musl-static-seq;
-        phoenix-pthread = phoenix.packages.${system}.phoenix-x86_64-musl-static-pthread;
-        phoenix-mapreduce = phoenix.packages.${system}.phoenix-x86_64-musl-static-all;
-        phoenix-musl-dynamic-seq =
-          phoenix.packages.${system}.phoenix-x86_64-musl-dynamic-seq;
-        phoenix-musl-dynamic-pthread =
-          phoenix.packages.${system}.phoenix-x86_64-musl-dynamic-pthread;
-        phoenix-glibc-dynamic-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq;
-        phoenix-glibc-dynamic-pthread =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-pthread;
-        phoenix-glibc-static-pthread =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-static-pthread;
+        phoenixPackages = phoenix.packages.x86_64-linux;
+        phoenix-seq = phoenixPackages.phoenix-x86_64-musl-static-seq;
+        phoenix-pthread = phoenixPackages.phoenix-x86_64-musl-static-pthread;
+        phoenix-mapreduce = phoenixPackages.phoenix-x86_64-musl-static-all;
+        phoenix-musl-dynamic-seq = phoenixPackages.phoenix-x86_64-musl-dynamic-seq;
+        phoenix-musl-dynamic-pthread = phoenixPackages.phoenix-x86_64-musl-dynamic-pthread;
+        phoenix-glibc-dynamic-seq = phoenixPackages.phoenix-x86_64-glibc-dynamic-seq;
+        phoenix-glibc-dynamic-pthread = phoenixPackages.phoenix-x86_64-glibc-dynamic-pthread;
+        phoenix-glibc-static-pthread = phoenixPackages.phoenix-x86_64-glibc-static-pthread;
         mkPhoenixCheck =
           {
             name,
