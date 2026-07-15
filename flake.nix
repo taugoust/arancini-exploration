@@ -190,19 +190,30 @@ EOF
             '';
       in
       {
-        devShells.default = native_pkgs.mkShell {
-          inputsFrom = [ arancini-package ];
-          packages = with native_pkgs; [
-            binutils
-            elfutils
-            file
-            gdb
-            jq
-            llvmPackages_18.llvm
-            patchelf
-            strace
-          ];
-        };
+        devShells =
+          let
+            commonArgs = {
+              inputsFrom = [ arancini-package ];
+              packages = [ arancini-package ] ++ (with native_pkgs; [
+                binutils
+                elfutils
+                file
+                gdb
+                jq
+                llvmPackages_18.llvm
+                patchelf
+                strace
+              ]);
+              ARANCINI_ROOT = "${arancini-package}";
+            };
+          in
+          {
+            default = native_pkgs.mkShell commonArgs;
+            full = native_pkgs.mkShell (commonArgs // {
+              packages = commonArgs.packages ++ [ phoenix-mapreduce ];
+              PHOENIX_ROOT = "${phoenix-mapreduce}";
+            });
+          };
 
         defaultPackage = arancini-package;
         checks = native_pkgs.lib.optionalAttrs (system == "aarch64-linux") {
