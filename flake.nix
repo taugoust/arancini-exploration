@@ -190,6 +190,20 @@ EOF
             '';
       in
       {
+        devShells.default = native_pkgs.mkShell {
+          inputsFrom = [ arancini-package ];
+          packages = with native_pkgs; [
+            binutils
+            elfutils
+            file
+            gdb
+            jq
+            llvmPackages_18.llvm
+            patchelf
+            strace
+          ];
+        };
+
         defaultPackage = arancini-package;
         checks = native_pkgs.lib.optionalAttrs (system == "aarch64-linux") {
           phoenix-histogram-dynamic-no-static = mkPhoenixCheck {

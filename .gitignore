@@ -23,6 +23,7 @@ cmake-build-*
 compile_commands.json
 result
 __pycache__
+.direnv/
 
 **/*.dot
 **/*.dot.*
