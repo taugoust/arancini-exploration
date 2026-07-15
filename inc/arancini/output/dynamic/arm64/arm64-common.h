@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arancini/util/attributes.h>
 #include <arancini/util/logger.h>
 #include <arancini/ir/value-type.h>
 
@@ -9,7 +10,8 @@ class backend_exception final : public std::runtime_error {
 public:
     template <typename... Args>
     backend_exception(std::string_view format, Args&&... args):
-        std::runtime_error(fmt::format(format, std::forward<Args>(args)...))
+        std::runtime_error(fmt::format(fmt::runtime(format),
+                                       std::forward<Args>(args)...))
     { }
 };
 

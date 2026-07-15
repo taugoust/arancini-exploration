@@ -30,6 +30,8 @@ void fpvec_translator::do_translate() {
         src2 = src1;
         src1 = dest;
     } break;
+    default:
+        break;
     }
 
     switch (xed_decoded_inst_get_iclass(xed_inst())) {

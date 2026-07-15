@@ -11,7 +11,7 @@ void binop_translator::do_translate() {
     auto op0 = read_operand(0);
     auto op1 = auto_cast(op0->val().type(), read_operand(1));
 
-    value_node *rslt;
+    value_node *rslt = nullptr;
 
     auto inst_class = xed_decoded_inst_get_iclass(xed_inst());
     switch (inst_class) {
@@ -180,7 +180,7 @@ void binop_translator::do_translate() {
         auto rhs = builder().insert_bitcast(
             value_type::vector(value_type::u8(), op1->val().type().width() / 8), op1->val());
 
-        for (int i = 0; i < op0->val().type().width() / 8; i++) {
+        for (std::size_t i = 0; i < op0->val().type().width() / 8; i++) {
             auto lhs_elem = builder().insert_vector_extract(lhs->val(), i);
             auto rhs_elem = builder().insert_vector_extract(rhs->val(), i);
             auto lhs_gt_rhs = builder().insert_cmpgt(lhs_elem->val(), rhs_elem->val());
@@ -225,7 +225,7 @@ void binop_translator::do_translate() {
         rhs = builder().insert_bitcast(
             value_type::vector(ty, nr_bits / ty.width()), rhs->val());
 
-        for (int i = 0; i < nr_bits / ty.width(); i++) {
+        for (std::size_t i = 0; i < nr_bits / ty.width(); i++) {
             auto equal = builder().insert_cmpeq(
                 builder().insert_vector_extract(lhs->val(), i)->val(),
                 builder().insert_vector_extract(rhs->val(), i)->val());
@@ -450,12 +450,7 @@ void binop_translator::do_translate() {
         auto op1 = read_operand(1);
 
         value_type ETy = value_type::v();
-        value_type CastTy = value_type::v();
         int ENum;
-
-        value_node *cexp;
-        value_node *cfrac;
-        value_node *z;
 
         switch (inst_class) {
         case XED_ICLASS_UCOMISS:
@@ -469,7 +464,7 @@ void binop_translator::do_translate() {
             ENum = 2;
         } break;
         default:
-            break;
+            throw std::logic_error("Unhandled XED instruction class");
         }
 
         op0 =
@@ -553,14 +548,12 @@ void binop_translator::do_translate() {
             throw std::logic_error("Unhandled XED instruction class");
         }
 
-        auto mask = builder().insert_constant_u8(3);
-
         dest = builder().insert_bitcast(VecTy, dest->val());
         op0 = builder().insert_bitcast(VecTy, op0->val());
         op0 = builder().insert_vector_extract(op0->val(), 0);
         op1 = builder().insert_bitcast(VecTy, op1->val());
         op1 = builder().insert_vector_extract(op1->val(), 0);
-        auto op_code = op2->const_val_i();
+        auto op_code = op2->const_val_i() & 0x7;
 
         /*
          * 0 - ordered eq
@@ -607,6 +600,8 @@ void binop_translator::do_translate() {
             cond = builder().insert_binop(binary_arith_op::cmpo, op0->val(),
                                           op1->val());
             break;
+        default:
+            throw std::logic_error("Unhandled comparison predicate");
         }
         auto res = builder().insert_csel(cond->val(), true_val->val(),
                                          false_val->val());

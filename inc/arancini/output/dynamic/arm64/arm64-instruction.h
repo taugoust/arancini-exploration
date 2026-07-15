@@ -170,7 +170,7 @@ private:
     std::uintmax_t mask() const { return mask(type_); }
 
     void check_scalar() const { 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (!type_.width() || type_.width() > 64 || type_.is_vector())
             throw backend_exception("Cannot create immediate of type {}", type_);
     }

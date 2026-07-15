@@ -10,6 +10,8 @@ set(OUTPUT_RISCV64_SRCS
 
 add_library(arancini-output-riscv64 SHARED ${OUTPUT_RISCV64_SRCS})
 add_library(arancini-output-riscv64-static STATIC ${OUTPUT_RISCV64_SRCS})
+arancini_enable_warnings(arancini-output-riscv64)
+arancini_enable_warnings(arancini-output-riscv64-static)
 
 set(INCLUDE_PATH ../../../inc)
 target_include_directories(arancini-output-riscv64 PUBLIC ${INCLUDE_PATH})

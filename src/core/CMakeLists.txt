@@ -7,6 +7,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Create the arancini-core library
 add_library(arancini-core SHARED elf/elf-reader.cpp input/input-arch.cpp
                                  util/tempfile-manager.cpp)
+arancini_enable_warnings(arancini-core)
 
 set(INCLUDE_PATH ../../inc)
 target_include_directories(arancini-core PUBLIC ${INCLUDE_PATH})

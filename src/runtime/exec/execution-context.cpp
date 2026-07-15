@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <utility>
+#include <vector>
 
 #include <sys/syscall.h>
 #if defined(ARCH_X86_64)
@@ -458,15 +459,16 @@ int execution_context::internal_call(void *cpu_state, int call) {
 
             auto iovec = (const struct iovec *)get_memory_ptr(x86_state->RSI);
             auto iocnt = x86_state->RDX;
-            struct iovec iovec_new[iocnt];
+            std::vector<struct iovec> iovec_new(iocnt);
             for (auto i = 0ull; i < iocnt; ++i) {
                 iovec_new[i].iov_base = reinterpret_cast<void *>(
                     get_memory_ptr(((uintptr_t)iovec[i].iov_base)));
                 iovec_new[i].iov_len = iovec[i].iov_len;
             }
 
-            x86_state->RAX = native_syscall(__NR_readv, x86_state->RDI,
-                                            (uintptr_t)iovec_new, iocnt);
+            x86_state->RAX = native_syscall(
+                __NR_readv, x86_state->RDI,
+                reinterpret_cast<uintptr_t>(iovec_new.data()), iocnt);
             break;
         }
         case 20: // writev
@@ -475,15 +477,16 @@ int execution_context::internal_call(void *cpu_state, int call) {
 
             auto iovec = (const struct iovec *)get_memory_ptr(x86_state->RSI);
             auto iocnt = x86_state->RDX;
-            struct iovec iovec_new[iocnt];
+            std::vector<struct iovec> iovec_new(iocnt);
             for (auto i = 0ull; i < iocnt; ++i) {
                 iovec_new[i].iov_base = reinterpret_cast<void *>(
                     get_memory_ptr(((uintptr_t)iovec[i].iov_base)));
                 iovec_new[i].iov_len = iovec[i].iov_len;
             }
 
-            x86_state->RAX = native_syscall(__NR_writev, x86_state->RDI,
-                                            (uintptr_t)iovec_new, iocnt);
+            x86_state->RAX = native_syscall(
+                __NR_writev, x86_state->RDI,
+                reinterpret_cast<uintptr_t>(iovec_new.data()), iocnt);
             break;
         }
         case 28: // madvise

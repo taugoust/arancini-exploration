@@ -283,7 +283,6 @@ void txlat_engine::translate(
                         oe->add_function_decl(st.first, decl_name);
                     }
                 }
-            next:;
             }
         }
     }
@@ -651,7 +650,7 @@ void txlat_engine::translate(
                            0x10000000) { // symbol index needs to be adjusted to
                                          // point to correct index in target
                                          // dyn_sym table
-                    const std::string &guest_name =
+                    const std::string guest_name =
                         dyn_sym->symbols()[reloc.symbol()].name();
                     unsigned int buf = reloc.type() & ~0xf0000000;
                     file.seekp(relocs->file_offset() + 24 * i + 8);
@@ -817,9 +816,7 @@ txlat_engine::generate_wrapper(arancini::input::input_arch &ia,
                                const nlib_function &func) {
     default_ir_builder irb(ia.get_internal_function_resolver(), true);
 
-    auto start = std::chrono::high_resolution_clock::now();
     ia.gen_wrapper(irb, func);
-    auto dur = std::chrono::high_resolution_clock::now() - start;
 
     return irb.get_chunk();
 }
@@ -886,7 +883,7 @@ void txlat_engine::generate_dot_graph(
 
 void txlat_engine::optimise(
     arancini::output::o_static::static_output_engine &oe,
-    const boost::program_options::variables_map &cmdline) {
+    const boost::program_options::variables_map &) {
     auto start = std::chrono::high_resolution_clock::now();
     deadflags_opt_visitor deadflags;
     for (auto c : oe.chunks()) {

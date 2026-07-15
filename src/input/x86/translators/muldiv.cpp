@@ -2,13 +2,15 @@
 #include <arancini/ir/ir-builder.h>
 #include <arancini/ir/node.h>
 
+#include <vector>
+
 using namespace arancini::ir;
 using namespace arancini::input::x86::translators;
 
 void muldiv_translator::do_translate() {
     xed_decoded_inst_t *insn = xed_inst();
     auto nops = xed_decoded_inst_noperands(insn);
-    arancini::ir::value_node *op[nops - 1];
+    std::vector<arancini::ir::value_node *> op(nops - 1);
 
     for (unsigned int i = 0; i < nops - 1; i++) {
         op[i] = read_operand(i);
@@ -247,7 +249,7 @@ void muldiv_translator::do_translate() {
             value_type::vector(value_type::s16(), nr_elt), dst->val());
         src = builder().insert_bitcast(
             value_type::vector(value_type::s16(), nr_elt), src->val());
-        for (int i = 0; i < nr_elt; i++) {
+        for (std::size_t i = 0; i < nr_elt; i++) {
             auto dst_elt = builder().insert_sx(
                 value_type::s32(),
                 builder().insert_vector_extract(dst->val(), i)->val());

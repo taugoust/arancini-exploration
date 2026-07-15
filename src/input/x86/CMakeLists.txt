@@ -33,6 +33,8 @@ set(INPUT_X86_SRCS
 add_library(arancini-input-x86 SHARED ${INPUT_X86_SRCS})
 
 add_library(arancini-input-x86-static STATIC ${INPUT_X86_SRCS})
+arancini_enable_warnings(arancini-input-x86)
+arancini_enable_warnings(arancini-input-x86-static)
 
 set(INCLUDE_PATH ../../../inc)
 target_include_directories(arancini-input-x86 PUBLIC ${INCLUDE_PATH})

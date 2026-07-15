@@ -8,7 +8,6 @@
 
 #include <arancini/runtime/exec/x86/x86-cpu-state.h>
 
-#include <cmath>
 #include <cctype>
 #include <string>
 #include <cstddef>
@@ -22,9 +21,6 @@ using namespace arancini::ir;
 // TODO: move to common
 register_operand context_block_reg(register_operand::x29);
 register_operand dbt_retval_register(register_operand::x0);
-
-// TODO: handle as part of capabilities code
-static constexpr bool supports_lse = false;
 
 using arancini::input::x86::reg_offsets;
 
@@ -208,7 +204,7 @@ void arm64_translation_context::lower(const std::shared_ptr<ir::action_node> &n)
 
 void arm64_translation_context::materialise(const ir::node* n) {
     // Invalid node
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (!n)
         throw backend_exception("Received NULL pointer to node when materialising");
 
@@ -332,8 +328,9 @@ std::optional<int64_t> arm64_translation_context::get_as_int(const node *n) cons
             return static_cast<int64_t>((static_cast<uint64_t>(*src) << (64 - width)) >> (64 - width));
         case cast_op::sx:
             return (*src << (64 - width)) >> (64 - width);
+        default:
+            return std::nullopt;
         }
-        return std::nullopt;
     }
     case node_kinds::binary_arith: {
         const auto &bn = *reinterpret_cast<const binary_arith_node *>(n);
@@ -361,8 +358,9 @@ std::optional<int64_t> arm64_translation_context::get_as_int(const node *n) cons
             return *lhs | *rhs;
         case binary_arith_op::bxor:
             return *lhs ^ *rhs;
+        default:
+            return std::nullopt;
         }
-        return std::nullopt;
     }
     default:
         return std::nullopt;
@@ -475,7 +473,7 @@ void arm64_translation_context::materialise_constant(const constant_node &n) {
 	const auto &out = var_alloc_.allocate(n.val());
 
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (n.val().type().is_floating_point()) {
         builder_.insert_comment("move {} of type {} to register", n.const_val_f(), n.val().type());
 
@@ -566,13 +564,13 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
 
     // Sanity check
     // Binary operations are defined in the IR with same size inputs and output
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (n.lhs().type() != n.rhs().type() || n.lhs().type() != n.val().type()) {
         throw backend_exception("Binary operations not supported between types {} = {} op {}",
                                 n.val().type(), n.lhs().type(), n.rhs().type());
     }
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (lhs_regset.size() != rhs_regset.size() || lhs_regset.size() != dest_regset.size()) {
         throw backend_exception("Binary operations not supported between types {} = {} op {}",
                                 n.val().type(), n.lhs().type(), n.rhs().type());
@@ -698,7 +696,7 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
         }
         case 128: // this must perform 64-bit multiplication
             // Integers handled differently than floats
-            [[likely]]
+            ARANCINI_LIKELY
             if (n.val().type().type_class() != ir::value_type_class::floating_point) {
                 // Get lower 64 bits
                 builder_.mul(dest_regset[0], lhs_regset[0], rhs_regset[0]);
@@ -921,10 +919,12 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
         case 1:
             fill_byte_with_bit(builder_, lhs_regset);
             fill_byte_with_bit(builder_, rhs_regset);
+            [[fallthrough]];
         case 8:
         case 16:
             extend_register(builder_, lhs_regset, op_type);
             extend_register(builder_, rhs_regset, op_type);
+            [[fallthrough]];
         case 32:
             builder_.orr_(dest_regset, lhs_regset, rhs_regset);
             builder_.ands(register_operand(register_operand::wzr_sp), dest_regset, dest_regset);
@@ -959,10 +959,12 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
         case 1:
             fill_byte_with_bit(builder_, lhs_regset);
             fill_byte_with_bit(builder_, rhs_regset);
+            [[fallthrough]];
         case 8:
         case 16:
             extend_register(builder_, lhs_regset, op_type);
             extend_register(builder_, rhs_regset, op_type);
+            [[fallthrough]];
         case 32:
         case 64:
             builder_.ands(dest_regset, lhs_regset, rhs_regset);
@@ -1046,7 +1048,7 @@ void arm64_translation_context::materialise_binary_arith(const binary_arith_node
 
     // Flags are set by most arithmetic operations
     // But not operations on vectors
-    [[likely]]
+    ARANCINI_LIKELY
     if (sets_flags) {
         builder_.setz(flag_map[reg_offsets::ZF]).add_comment("compute flag: ZF");
         if (n.val().type().element_width() < 32) {
@@ -1078,14 +1080,14 @@ void arm64_translation_context::materialise_ternary_arith(const ternary_arith_no
 
     // Sanity check
     // Binary operations are defined in the IR with same size inputs and output
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (n.lhs().type() != n.rhs().type() || n.lhs().type() != n.val().type())
     {
         throw backend_exception("Ternary operations not supported between types {} = {} op {} with carry {}",
                                 n.val().type(), n.lhs().type(), n.rhs().type(), n.top().type());
     }
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (lhs_regs.size() != rhs_regs.size() || lhs_regs.size() != dest_regs.size()
                                            || (top_regs.size() != 1 && top_regs.size() != dest_regs.size()))
     {
@@ -1094,7 +1096,6 @@ void arm64_translation_context::materialise_ternary_arith(const ternary_arith_no
     }
 
     bool inverse_carry_flag_operation = false;
-    const register_operand& pstate = var_alloc_.allocate(register_operand(register_operand::nzcv).type());
     for (std::size_t i = 0; i < dest_regs.size(); ++i) {
         // Set carry flag
         // builder_.mrs(pstate, register_operand(register_operand::nzcv));
@@ -1354,7 +1355,7 @@ void arm64_translation_context::materialise_cast(const cast_node &n) {
     case cast_op::trunc:
         builder_.insert_comment("Truncate from {} to {}", n.source_value().type(), n.val().type());
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (dest_vreg.type().element_width() > src_vreg.type().element_width())
             throw backend_exception("Cannot truncate from {} to large size {}",
                                     dest_vreg.type(), src_vreg.type());
@@ -1384,7 +1385,7 @@ void arm64_translation_context::materialise_cast(const cast_node &n) {
         break;
     case cast_op::convert:
         // convert between integer and float representations
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (out.size() != 1)
             throw backend_exception("Cannot convert {} because it is larger than 64-bits",
                                     n.val().type());
@@ -1452,11 +1453,11 @@ void arm64_translation_context::materialise_csel(const csel_node &n) {
 
 void arm64_translation_context::materialise_bit_shift(const bit_shift_node &n) {
     // Generally, cannot implement them for vectors or > 64-bit values
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (n.val().type().is_vector())
         throw backend_exception("Cannot implement {} for type {}", n.op(), n.val().type());
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (n.amount().type().is_vector() || n.amount().type().element_width() > value_types::base_type.element_width())
         throw backend_exception("Cannot {} by amount type {}", n.op(), n.val().type());
 
@@ -1543,11 +1544,6 @@ void arm64_translation_context::materialise_bit_shift(const bit_shift_node &n) {
     }
 }
 
-// TODO: this should be part of the value
-static inline std::size_t total_width(const std::vector<register_operand> &vec) {
-    return std::ceil(vec.size() * vec[0].type().element_width());
-}
-
 void arm64_translation_context::materialise_bit_extract(const bit_extract_node &n) {
     const auto &source = materialise_port(n.source_value());
     std::vector<register_operand> source_bits;
@@ -1568,7 +1564,6 @@ void arm64_translation_context::materialise_bit_extract(const bit_extract_node &
     if (out.size() > source_bits.size())
         throw backend_exception("Destination cannot be larger than source for bit extract node");
 
-    auto dest_total_width = n.val().type().width();
     auto reg_extract_start = n.from() / source_bits[0].type().element_width();
 
     std::size_t extracted = 0;
@@ -1611,7 +1606,7 @@ void arm64_translation_context::materialise_bit_insert(const bit_insert_node &n)
     const auto &dest = var_alloc_.allocate(n.val());
 
     // Sanity check
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (dest.size() != src.size())
         throw backend_exception("Source and destination mismatch for bit insert node (dest: {} != src: {}",
                                 dest.size(), src.size());
@@ -1637,7 +1632,7 @@ void arm64_translation_context::materialise_bit_insert(const bit_insert_node &n)
     std::size_t insert_idx = n.to() % element_width;
     std::size_t insert_len = std::min(element_width - insert_idx, n.length());
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (insert_len == 0)
         throw backend_exception("Cannot insert into invalid range [{}:{})", n.to(), n.to()+insert_len);
 
@@ -1655,7 +1650,7 @@ void arm64_translation_context::materialise_bit_insert(const bit_insert_node &n)
         return cast(bits, type);
     };
 
-    [[likely]]
+    ARANCINI_LIKELY
     if (dest_bits.size() == 1) {
         auto out = insertion_bits.size() == 1
                        ? bits_as(insertion_bits[0], dest_bits[0].type())
@@ -1667,7 +1662,6 @@ void arm64_translation_context::materialise_bit_insert(const bit_insert_node &n)
     }
 
     std::size_t bits_idx = 0;
-    std::size_t bits_total_width = total_width(insertion_bits);
 
     std::size_t inserted = 0;
     std::size_t insert_start = n.to() / dest_bits[0].type().element_width();
@@ -1694,11 +1688,11 @@ void arm64_translation_context::materialise_vector_insert(const vector_insert_no
     const auto &source = materialise_port(n.source_vector());
     const auto &insert_value = materialise_port(n.insert_value());
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (out.size() < source.size())
         throw backend_exception("Destination vector for vector insert is smaller than source vector");
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (out.size() == 0 || source.size() == 0 || insert_value.size() == 0)
         throw backend_exception("Cannot perform vector insertion with 0-size registers");
 
@@ -1724,7 +1718,7 @@ void arm64_translation_context::materialise_vector_insert(const vector_insert_no
         std::size_t insert_idx = insert_from % out_bits[0].type().element_width();
         std::size_t inserted = 0;
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (insert_from + insert_len > n.val().type().width())
             throw backend_exception("Cannot insert at bit {} in destination vector", insert_from);
 
@@ -1758,7 +1752,7 @@ void arm64_translation_context::materialise_vector_insert(const vector_insert_no
 
     std::size_t index = (n.index() * n.val().type().element_width()) / out[0].type().element_width();
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (index + insert_value.size() > out.size())
         throw backend_exception("Cannot insert at index {} in destination vector", index);
 
@@ -1797,7 +1791,7 @@ void arm64_translation_context::materialise_vector_extract(const vector_extract_
 
         std::size_t extract_from = n.index() * n.source_vector().type().element_width();
         std::size_t extract_len = n.val().type().width();
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (extract_from + extract_len > n.source_vector().type().width())
             throw backend_exception("Cannot extract from bit {} in source vector", extract_from);
 
@@ -1860,7 +1854,7 @@ void arm64_translation_context::materialise_internal_call(const internal_call_no
 }
 
 void arm64_translation_context::materialise_read_local(const read_local_node &n) {
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (locals_.count(n.local()) == 0)
         throw backend_exception("Attempting to read local@{} of type {} that does not exist",
                                 fmt::ptr(n.local()), n.local()->type());

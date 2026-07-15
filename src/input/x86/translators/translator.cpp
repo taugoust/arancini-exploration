@@ -6,6 +6,8 @@
 #include <arancini/ir/port.h>
 #include <arancini/util/logger.h>
 
+#include <limits>
+
 using namespace arancini::ir;
 using namespace arancini::input::x86::translators;
 
@@ -194,6 +196,9 @@ action_node *translator::write_operand(int opnum, port &value) {
                         enc_reg_off,
                         builder_.insert_zx(value_type::u512(), flat->val())
                             ->val());
+                default:
+                    throw std::runtime_error(
+                        "unsupported X/Y/ZMM enclosing register width");
                 }
             }
             switch (xed_get_register_width_bits64(
@@ -207,6 +212,9 @@ action_node *translator::write_operand(int opnum, port &value) {
             case 512:
                 enc = read_reg(value_type::u512(), enc_reg_off);
                 break;
+            default:
+                throw std::runtime_error(
+                    "unsupported X/Y/ZMM enclosing register width");
             }
             auto enc_len = enc->val().type().width();
             switch (val_len) {
@@ -768,7 +776,7 @@ value_node *translator::read_reg(const value_type &vt, reg_offsets reg) {
 }
 
 void translator::write_flags(value_node *op, flag_op zf, flag_op cf, flag_op of,
-                             flag_op sf, flag_op pf, flag_op af) {
+                             flag_op sf, flag_op, flag_op) {
     switch (zf) {
     case flag_op::set0:
         write_reg(reg_offsets::ZF,
@@ -897,14 +905,19 @@ void translator::write_flags(value_node *op, flag_op zf, flag_op cf, flag_op of,
         case node_kinds::bit_shift:
             write_reg(reg_offsets::SF, ((bit_shift_node *)op)->negative());
             break;
-        case node_kinds::constant:
-            write_reg(
-                reg_offsets::SF,
-                builder_
-                    .insert_constant_i(value_type::u1(),
-                                       ((constant_node *)op)->const_val_i() < 0)
-                    ->val());
+        case node_kinds::constant: {
+            const auto *constant = static_cast<constant_node *>(op);
+            const auto width = constant->val().type().width();
+            const bool is_negative =
+                width > 0 &&
+                width <= std::numeric_limits<unsigned long>::digits &&
+                ((constant->const_val_i() >> (width - 1)) & 1UL) != 0;
+            write_reg(reg_offsets::SF,
+                      builder_
+                          .insert_constant_i(value_type::u1(), is_negative)
+                          ->val());
             break;
+        }
         default:
             throw std::runtime_error("unsupported operation node type for SF");
         }

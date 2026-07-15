@@ -9,6 +9,7 @@
 #include <functional>
 #include <mutex>
 #include <tuple>
+#include <utility>
 
 namespace util {
 
@@ -225,7 +226,7 @@ class logger_impl
     void print(FILE *dest, std::tuple<Args...> &&printer_args) {
         std::apply(
             [dest](auto &&format, auto &&...args) {
-                fmt::print(dest, std::forward<decltype(format)>(format),
+                fmt::print(dest, fmt::runtime(format),
                            std::forward<decltype(args)>(args)...);
             },
             printer_args);
@@ -243,7 +244,15 @@ template <typename... Args> struct non_const_lazy_eval_impl {
     template <typename R, typename T>
     std::function<R()> operator()(R (T::*ptr)(Args...), T *obj,
                                   Args &&...args) const noexcept {
-        return std::bind(ptr, obj, args...);
+        auto captured_args = std::make_tuple(args...);
+        return [ptr, obj, captured_args = std::move(captured_args)]() mutable
+                   -> R {
+            return std::apply(
+                [ptr, obj](auto &...args) -> R {
+                    return std::invoke(ptr, obj, args...);
+                },
+                captured_args);
+        };
     }
 };
 
@@ -254,7 +263,15 @@ template <typename... Args> struct const_lazy_eval_impl {
     template <typename R, typename T>
     std::function<R()> operator()(R (T::*ptr)(Args...) const, const T *obj,
                                   Args &&...args) const noexcept {
-        return std::bind(ptr, obj, args...);
+        auto captured_args = std::make_tuple(args...);
+        return [ptr, obj, captured_args = std::move(captured_args)]() mutable
+                   -> R {
+            return std::apply(
+                [ptr, obj](auto &...args) -> R {
+                    return std::invoke(ptr, obj, args...);
+                },
+                captured_args);
+        };
     }
 };
 
@@ -272,7 +289,14 @@ struct lazy_eval_impl : const_lazy_eval_impl<Args...>,
     template <typename R>
     std::function<R()> operator()(R (*ptr)(Args...),
                                   Args &&...args) const noexcept {
-        return std::bind(ptr, args...);
+        auto captured_args = std::make_tuple(args...);
+        return [ptr, captured_args = std::move(captured_args)]() mutable -> R {
+            return std::apply(
+                [ptr](auto &...args) -> R {
+                    return std::invoke(ptr, args...);
+                },
+                captured_args);
+        };
     }
 };
 

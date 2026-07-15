@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 namespace arancini::native_lib {
-class nlib_function;
+struct nlib_function;
 }
 namespace arancini::ir {
 class ir_builder;

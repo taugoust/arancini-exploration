@@ -118,7 +118,6 @@ struct dso {
         size_t *got;
     } *funcdescs;
     size_t *got;
-    char buf[];
 };
 
 struct libc {

@@ -463,7 +463,7 @@ void x86_input_arch::translate_chunk(ir_builder &builder, off_t base_address,
     size_t offset = 0;
     std::string disasm;
 
-    translation_result r;
+    translation_result r = translation_result::normal;
 
     while (offset < code_size) {
         xed_decoded_inst_t xedd;
@@ -497,7 +497,8 @@ void x86_input_arch::translate_chunk(ir_builder &builder, off_t base_address,
                 off_t addr = std::strtol(addr_str.c_str(), nullptr, 16);
 
                 if (addr > base_address &&
-                    addr < base_address + offset + length)
+                    addr < base_address +
+                               static_cast<off_t>(offset + length))
                     util::global_logger.info("Backwards branch @ {}\n",
                                              addr_str);
             }

@@ -24,9 +24,9 @@ class translation_context {
     virtual void end_instruction() = 0;
     virtual void end_block() = 0;
 
-    virtual void chain(uint64_t chain_address, void *chain_target) {
+    virtual void chain(uint64_t, void *) {
         // Default to No-op
-    };
+    }
 
     virtual void lower(const std::shared_ptr<ir::action_node> &n) = 0;
 

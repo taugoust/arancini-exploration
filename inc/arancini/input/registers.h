@@ -37,15 +37,15 @@ static const char *regnames[] = {
 #undef DEFREG
 };
 
-static unsigned long offset_to_idx(reg_offsets reg) {
+[[maybe_unused]] static unsigned long offset_to_idx(reg_offsets reg) {
     return arancini::input::x86::off_to_idx.at((unsigned long)reg);
 }
 
-static const char *offset_to_name(reg_offsets reg) {
+[[maybe_unused]] static const char *offset_to_name(reg_offsets reg) {
     return arancini::input::x86::off_to_name.at((unsigned long)reg);
 }
 
-static std::string idx_to_reg_name(int regidx) {
+[[maybe_unused]] static std::string idx_to_reg_name(int regidx) {
     if ((size_t)regidx < (sizeof(regnames) / sizeof(regnames[0]))) {
         return regnames[regidx];
     }

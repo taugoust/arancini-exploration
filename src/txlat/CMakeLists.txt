@@ -9,6 +9,7 @@ endif()
 
 set(INCLUDE_PATH ../../inc)
 add_executable(txlat main.cpp txlat-engine.cpp)
+arancini_enable_warnings(txlat)
 
 target_include_directories(txlat PRIVATE ${INCLUDE_PATH})
 

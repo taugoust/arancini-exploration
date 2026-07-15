@@ -34,7 +34,7 @@ public:
 
     [[nodiscard]]
     operator const register_operand&() const {
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (values_.size() > 1)
             throw backend_exception("Accessing register set of {} registers as single register",
                                     values_.size());
@@ -105,12 +105,12 @@ public:
     variable(const value& regseq):
         values_({regseq})
     {
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (regseq.type().is_vector())
             throw backend_exception("Attempting to create variable from vector value");
 
         // TODO: may prefer to relax this constraint
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (!regseq.size())
             throw backend_exception("Attempting to create variable from empty value");
     } 
@@ -118,7 +118,7 @@ public:
     variable(const std::vector<value>& emulated_vector):
         values_(emulated_vector)
     { 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (emulated_vector.size() && emulated_vector[0].type().is_vector())
             throw backend_exception("Attempting to create variable from vector value");
     } 
@@ -249,12 +249,14 @@ public:
 
             const immediate_operand& imm = op;
             if (!immediate_operand::fits(imm.value(), imm_type_))
-                throw backend_exception("immediate {} cannot fit into {} (strict requirement)");
+                throw backend_exception(
+                    "immediate {} cannot fit into {} (strict requirement)",
+                    imm, imm_type_);
 
             return op;
         }
     protected:
-        immediates_strict_policy(instruction_builder* builder, ir::value_type imm_type, ir::value_type reg_type):
+        immediates_strict_policy(instruction_builder*, ir::value_type imm_type, ir::value_type):
             imm_type_(imm_type)
         { }
 
@@ -265,7 +267,7 @@ public:
         ir::value_type imm_type_;
     };
 
-    void bound_to_type(const register_operand& var, ir::value_type type) {
+    void bound_to_type(const register_operand& var, ir::value_type) {
         // if (is_bignum(var.type()) || type.is_vector())
         //     throw backend_exception("Cannot bound big scalar of type {} to type {}", var.type(), type);
 
@@ -409,7 +411,6 @@ public:
             auto lhs_casted = lhs;
             auto rhs_casted = rhs;
             auto out_casted = out;
-            auto type = out[0].type();
 
             for (std::size_t i = 0; i < out.size(); ++i) {
                 // TODO: move these to zero-extend logic
@@ -456,7 +457,7 @@ public:
     }
 
     void move(const variable& out, const variable& source) {
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (out.size() != source.size())
             throw backend_exception("Cannot move from {} to {} (different sizes not supported)", 
                                     out.type(), source.type());
@@ -477,7 +478,7 @@ public:
             return;
         }
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (out.type().is_vector() || source.type().is_vector())
             throw backend_exception("Cannot move from {} to {} (mixed scalar-vector moves not supported)", 
                                     out.type(), source.type());
@@ -576,7 +577,7 @@ public:
         if (cond.condition() == "ne")
             return append(arm64_assembler::bne(destination));
         
-        [[likely]]
+        ARANCINI_LIKELY
         if (cond.condition() == "lt")
             return append(arm64_assembler::bl(destination));
 
@@ -596,7 +597,7 @@ public:
         if (cond.condition() == "eq")
             return append(arm64_assembler::cbz(reg, destination));
 
-        [[likely]]
+        ARANCINI_LIKELY
         if (cond.condition() == "ne")
             return append(arm64_assembler::cbnz(reg, destination));
 
@@ -934,7 +935,7 @@ public:
     void sign_extend(const value& out, const value& source) {
         // Sanity check
         // TODO: more missing sanity checks
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (out.type().width() < source.type().width())
             throw backend_exception("Cannot sign-extend {} to smaller size {}",
                                     source.type(), out.type());
@@ -986,7 +987,7 @@ public:
             throw backend_exception("Memory order {} not supported for atomic load (only acquire and relaxed supported)",
                                     util::to_underlying(mem_order));
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (mem_order == std::memory_order_relaxed) {
             if (out.type().width() <= 8) {
                 append(arm64_assembler::ldxrb(out, address));
@@ -1025,7 +1026,7 @@ public:
             throw backend_exception("Memory order {} not supported for atomic store (only release and relaxed supported)",
                                     util::to_underlying(mem_order));
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (mem_order == std::memory_order_relaxed) {
             if (source.type().width() <= 8) {
                 append(arm64_assembler::stxrb(status, source, address));
@@ -1537,7 +1538,9 @@ public:
 
     template <typename... Args>
     void insert_comment(std::string_view format, Args&&... args) {
-        append(instruction(fmt::format("// {}", fmt::format(format, std::forward<Args>(args)...))));
+        append(instruction(fmt::format(
+            "// {}", fmt::format(fmt::runtime(format),
+                                  std::forward<Args>(args)...))));
     }
 
 	void allocate();
@@ -1585,7 +1588,7 @@ public:
         static_assert (sizeof(std::uint64_t) <= sizeof(unsigned long long),
                        "Arm DBT expects unsigned long long to be at least as large as 64-bits");
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (out_type.is_vector())
             throw backend_exception("Cannot move immediate {} into vector type {}", imm, out_type);
 

@@ -198,7 +198,7 @@ class llvm_static_output_engine_impl {
                           ::llvm::Value *ret, unsigned long reg_idx);
     void debug_dump();
 
-    template <typename T> bool is_stack(T *n) const {
+    template <typename T> bool is_stack(T *) const {
         return false;
         /* We keep this because in theory it should work
         bool is_stack = false;
@@ -223,6 +223,6 @@ class llvm_static_output_engine_impl {
 
         return is_stack;
         */
-    };
+    }
 };
 } // namespace arancini::output::o_static::llvm

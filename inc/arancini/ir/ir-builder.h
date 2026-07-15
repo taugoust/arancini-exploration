@@ -14,17 +14,17 @@ class ir_builder {
 
     internal_function_resolver &ifr() const { return ifr_; }
 
-    virtual void begin_chunk(const std::string &name) {
+    virtual void begin_chunk(const std::string &) {
         // Create Allocator for the current chunk. It will be aliased by all the
         // action_node pointers. So it stays active after the chunk is finished
         // until all references to the action_nodes are released
         allocator = std::make_shared<Allocator<node>>();
-    };
+    }
     virtual void end_chunk() {
         // The action_nodes still alias it. So until all the action nodes in the
         // chunk are finished the allocation stays valid.
         allocator.reset();
-    };
+    }
 
     virtual void begin_packet(off_t address,
                               const std::string &disassembly = "") = 0;
@@ -553,7 +553,7 @@ class ir_builder {
 
   protected:
     virtual void insert_action(std::shared_ptr<action_node> a) = 0;
-    virtual void process_node(node *) {};
+    virtual void process_node(node *) {}
 
   private:
     internal_function_resolver &ifr_;

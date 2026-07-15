@@ -160,7 +160,7 @@ void elf_reader::parse_symbol_table(section_flags flags,
                                     section_type type) {
     std::vector<symbol> symbols;
 
-    for (off_t i = 0; i < size; i += entry_size) {
+    for (size_t i = 0; i < size; i += entry_size) {
         auto sym = read<Elf64_Sym>(offset + i);
 
         std::string name = readstr(link_offset + sym.st_name);
@@ -187,7 +187,7 @@ void elf_reader::parse_program_headers(off_t offset, int count, size_t size) {
 void elf_reader::parse_relocation_addend_table(section_flags flags,
                                                const std::string &sec_name,
                                                off_t address, off_t offset,
-                                               size_t size, off_t link_offset,
+                                               size_t size, off_t,
                                                size_t entry_size) {
     std::vector<rela> relas;
 
@@ -203,10 +203,11 @@ void elf_reader::parse_relocation_addend_table(section_flags flags,
 }
 
 void elf_reader::parse_relr(section_flags flags, const std::string &sec_name,
-                            off_t address, off_t offset, size_t size,
-                            off_t link_offset, size_t entry_size) {
+                            off_t address, off_t offset, size_t size, off_t,
+                            size_t entry_size) {
     std::vector<uint64_t> relrs;
-    off_t where;
+    off_t where = 0;
+    bool has_base = false;
 
     for (size_t i = 0; i < size; i += entry_size) {
         auto entry = read<size_t>(offset + i);
@@ -216,7 +217,12 @@ void elf_reader::parse_relr(section_flags flags, const std::string &sec_name,
 
             relrs.push_back(where);
             where += 8;
+            has_base = true;
         } else {
+            if (!has_base) {
+                throw std::runtime_error(
+                    "RELR bitmap encountered before a base address");
+            }
             for (long j = 0; (entry >>= 1) != 0; j++) {
                 if ((entry & 1) != 0) {
                     relrs.push_back(where + 8 * j);
@@ -238,13 +244,13 @@ struct [[gnu::packed]] plt_entry {
 
 void elf_reader::parse_progbits(section_flags flags,
                                 const std::string &sec_name, off_t address,
-                                off_t offset, size_t size, off_t link_offset,
-                                size_t entry_size) {
+                                off_t offset, size_t size, off_t,
+                                size_t) {
     if (sec_name == ".plt") {
         std::vector<std::pair<unsigned long, unsigned long>> stubs;
 
         // TODO: arch specific
-        for (off_t i = 0; i < size; i += sizeof(struct plt_entry)) {
+        for (size_t i = 0; i < size; i += sizeof(struct plt_entry)) {
             auto e = read<plt_entry>(offset + i);
             // offset from the jump instr
             // +   addr of the jump instr
@@ -266,8 +272,8 @@ void elf_reader::parse_progbits(section_flags flags,
 }
 
 void elf_reader::parse_dynamic(section_flags flags, const std::string &sec_name,
-                               off_t address, off_t offset, size_t size,
-                               off_t link_offset, size_t entry_size) {
+                               off_t address, off_t offset, size_t size, off_t,
+                               size_t) {
     // maybe we need that later?
     sections_.push_back(std::make_shared<section>(get_data_ptr(offset), address,
                                                   size, section_type::dynamic,

@@ -4,6 +4,9 @@
 
 %locations
 
+/* Function and return-type attribute lists intentionally share a prefix. */
+%expect 2
+
 %define api.namespace {arancini::native_lib}
 %define api.parser.class {Parser}
 %define api.token.raw

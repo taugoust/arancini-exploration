@@ -6,7 +6,7 @@
 using namespace ::llvm;
 
 PreservedAnalyses FenceCombinePass::run(Function &F,
-                                        FunctionAnalysisManager &AM) {
+                                        FunctionAnalysisManager &) {
     for (BasicBlock &BB : F) {
 
         auto It = BB.begin();

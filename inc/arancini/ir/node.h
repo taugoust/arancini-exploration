@@ -3,6 +3,7 @@
 #include <arancini/ir/metadata.h>
 #include <arancini/ir/port.h>
 #include <arancini/ir/visitor.h>
+#include <arancini/util/attributes.h>
 
 #include <fmt/core.h>
 
@@ -49,7 +50,8 @@ class ir_exception : public std::runtime_error {
   public:
     template <typename... Args>
     ir_exception(std::string_view format, Args &&...args)
-        : std::runtime_error(fmt::format(format, std::forward<Args>(args)...)) {
+        : std::runtime_error(fmt::format(fmt::runtime(format),
+                                         std::forward<Args>(args)...)) {
     }
 };
 
@@ -658,7 +660,7 @@ class cast_node : public value_node {
                  value_type_class::floating_point) &&
                 (source_value.type().type_class() !=
                  value_type_class::floating_point)) {
-                [[unlikely]]
+                ARANCINI_UNLIKELY
                 if (target_type.type_class() ==
                     source_value.type().type_class()) {
                     throw ir_exception("cannot convert between the same non-FP "
@@ -667,7 +669,7 @@ class cast_node : public value_node {
                 }
             }
         } else if (op != cast_op::zx) {
-            [[unlikely]]
+            ARANCINI_UNLIKELY
             if (target_type.type_class() != source_value.type().type_class()) {
                 throw ir_exception(
                     "cannot cast between type classes target={}, source={}",
@@ -675,7 +677,7 @@ class cast_node : public value_node {
             }
         }
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if ((convert_type != fp_convert_type::none) &&
             (op != cast_op::convert)) {
             throw ir_exception("convert type should be 'none' if the cast_op "
@@ -1251,19 +1253,19 @@ class bit_insert_node : public value_node {
     bit_insert_node(port &value, port &bits, std::size_t to, std::size_t length)
         : value_node(node_kinds::bit_insert, value.type()),
           source_value_(value), bits_(bits), to_(to), length_(length) {
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (bits.type().width() > value.type().width()) {
             throw ir_exception("width of type of incoming bits cannot be "
                                "greater than type of value");
         }
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (length > source_value_.type().width()) {
             throw ir_exception("width of type of incoming bits cannot be "
                                "smaller than requested length");
         }
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (to + length - 1 > source_value_.type().width() - 1) {
             throw ir_exception("bit insert range [{}:{}] is out of bounds in "
                                "target value [{}:0]",

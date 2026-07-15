@@ -692,7 +692,7 @@ void fpu_translator::do_translate() {
         case XED_ICLASS_FCOMPP:
         case XED_ICLASS_FUCOMPP:
             fpu_pop();
-        // Fallthrough intended
+            [[fallthrough]];
         case XED_ICLASS_FCOMP:
         case XED_ICLASS_FUCOMP:
         case XED_ICLASS_FICOMP:
@@ -731,6 +731,7 @@ void fpu_translator::do_translate() {
         case XED_ICLASS_FCOMIP:
         case XED_ICLASS_FUCOMIP:
             fpu_pop();
+            [[fallthrough]];
         default:
             break;
         }

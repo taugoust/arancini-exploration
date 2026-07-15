@@ -9,6 +9,8 @@ namespace arancini::util {
 class basefile {
   public:
     basefile(const std::string &name) : name_(name) {}
+    virtual ~basefile() = default;
+
     const std::string &name() const { return name_; }
     virtual std::ofstream open() = 0;
 
@@ -19,7 +21,7 @@ class basefile {
 class tempfile : public basefile {
   public:
     tempfile(const std::string &name) : basefile(name) {};
-    ~tempfile() { unlink(name_.c_str()); }
+    ~tempfile() override { unlink(name_.c_str()); }
 
     std::ofstream open() override { return std::ofstream(name_); }
 };

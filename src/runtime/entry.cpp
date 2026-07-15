@@ -95,7 +95,7 @@ static void segv_handler([[maybe_unused]] int signo,
  * Initialises signal handling
  */
 static void init_signals() {
-    struct sigaction sa = {0};
+    struct sigaction sa {};
 
     // Capture signals likely to be raised by translated/JIT code.
     sa.sa_flags = SA_SIGINFO;
@@ -122,28 +122,28 @@ static uint64_t setup_guest_stack(int argc, char **argv, intptr_t stack_top,
     {
         auto *stack =
             (Elf64_auxv_t *)execution_context->get_memory_ptr(stack_top);
-        *(--stack) = (Elf64_auxv_t){AT_NULL, {0}};
+        *(--stack) = Elf64_auxv_t{AT_NULL, {0}};
         //		*(--stack) = (Elf64_auxv_t) {AT_ENTRY, {...}};
         //		*(--stack) = (Elf64_auxv_t) {AT_PHDR, {...r}};
         //		*(--stack) = (Elf64_auxv_t) {AT_PHNUM, {...}};
         //		*(--stack) = (Elf64_auxv_t) {AT_PHENT, {...}};
-        *(--stack) = (Elf64_auxv_t){AT_UID, {getauxval(AT_UID)}};
-        *(--stack) = (Elf64_auxv_t){AT_GID, {getauxval(AT_GID)}};
-        *(--stack) = (Elf64_auxv_t){AT_EGID, {getauxval(AT_EGID)}};
-        *(--stack) = (Elf64_auxv_t){AT_EUID, {getauxval(AT_EUID)}};
-        *(--stack) = (Elf64_auxv_t){AT_CLKTCK, {getauxval(AT_CLKTCK)}};
+        *(--stack) = Elf64_auxv_t{AT_UID, {getauxval(AT_UID)}};
+        *(--stack) = Elf64_auxv_t{AT_GID, {getauxval(AT_GID)}};
+        *(--stack) = Elf64_auxv_t{AT_EGID, {getauxval(AT_EGID)}};
+        *(--stack) = Elf64_auxv_t{AT_EUID, {getauxval(AT_EUID)}};
+        *(--stack) = Elf64_auxv_t{AT_CLKTCK, {getauxval(AT_CLKTCK)}};
         *(--stack) =
-            (Elf64_auxv_t){AT_RANDOM,
+            Elf64_auxv_t{AT_RANDOM,
                            {getauxval(AT_RANDOM) -
                             (uintptr_t)execution_context->get_memory_ptr(
                                 0)}}; // TODO Copy/Generate new one?
-        *(--stack) = (Elf64_auxv_t){AT_SECURE, {0}};
-        *(--stack) = (Elf64_auxv_t){AT_PAGESZ, {getauxval(AT_PAGESZ)}};
-        *(--stack) = (Elf64_auxv_t){AT_HWCAP, {0}};
-        *(--stack) = (Elf64_auxv_t){AT_HWCAP2, {0}};
+        *(--stack) = Elf64_auxv_t{AT_SECURE, {0}};
+        *(--stack) = Elf64_auxv_t{AT_PAGESZ, {getauxval(AT_PAGESZ)}};
+        *(--stack) = Elf64_auxv_t{AT_HWCAP, {0}};
+        *(--stack) = Elf64_auxv_t{AT_HWCAP2, {0}};
         //        *(--stack) = (Elf64_auxv_t) {AT_PLATFORM, {0}};
         *(--stack) =
-            (Elf64_auxv_t){AT_EXECFN,
+            Elf64_auxv_t{AT_EXECFN,
                            {(uintptr_t)argv[0] -
                             (uintptr_t)execution_context->get_memory_ptr(0)}};
         stack_top =

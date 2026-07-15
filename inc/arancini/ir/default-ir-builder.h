@@ -36,7 +36,8 @@ class default_ir_builder : public ir_builder {
     virtual void process_node(node *a) override;
 
   private:
-    bool chunk_complete_, debug_;
+    bool chunk_complete_;
+    [[maybe_unused]] bool debug_;
     std::shared_ptr<chunk> current_chunk_;
     std::shared_ptr<packet> current_pkt_;
 };

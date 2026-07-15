@@ -17,6 +17,7 @@ set(INCLUDE_PATH ../../../inc)
 add_library(
   arancini-output-llvm llvm-optimisations.cpp llvm-static-output-engine.cpp
                        llvm-fence-combine.cpp)
+arancini_enable_warnings(arancini-output-llvm)
 
 target_include_directories(arancini-output-llvm PUBLIC ${INCLUDE_PATH}
                                                        ${LLVM_INCLUDE_DIRS})

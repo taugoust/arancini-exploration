@@ -11,6 +11,8 @@ set(INCLUDE_PATH ../../inc)
 
 add_library(arancini-runtime SHARED ${RUNTIME_SRCS})
 add_library(arancini-runtime-static STATIC ${RUNTIME_SRCS})
+arancini_enable_warnings(arancini-runtime)
+arancini_enable_warnings(arancini-runtime-static)
 
 if(TARGET arancini-output-x86)
   add_library(arancini-trampoline OBJECT dbt/trampoline.x86_64.S)

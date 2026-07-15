@@ -8,6 +8,8 @@ set(IR_SRCS debug-visitor.cpp default-ir-builder.cpp dot-graph-generator.cpp)
 
 add_library(arancini-ir SHARED ${IR_SRCS})
 add_library(arancini-ir-static STATIC ${IR_SRCS})
+arancini_enable_warnings(arancini-ir)
+arancini_enable_warnings(arancini-ir-static)
 
 set(INCLUDE_PATH ../../inc)
 target_include_directories(arancini-ir PUBLIC ${INCLUDE_PATH})

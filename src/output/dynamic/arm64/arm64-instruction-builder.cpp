@@ -101,12 +101,12 @@ public:
     { }
 
     [[nodiscard]]
-    std::size_t allocate(arancini::ir::value_type t) {
+    std::size_t allocate(arancini::ir::value_type) {
 		// The reverse linear register reg_alloc we use expects that we'll find the first free
         // register, even when there exists a gap between "assigned" and "unassigned registers"
 		auto idx = registers_._Find_first();
 
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (idx >= registers_.size()) {
             throw backend_exception("run out registers to allocate and register spilling not supported");
         }
@@ -116,14 +116,14 @@ public:
     }
 
     void deallocate(std::size_t idx) {
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (idx >= registers_.size()) {
             throw backend_exception("attempting to deallocate register index {} but only {} registers exist",
                                     idx, registers_.size());
         }
 
         // Check if allocated previously
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (registers_[idx] == 1)
             throw backend_exception("Cannot deallocate unallocated register");
         registers_.flip(idx);
@@ -350,7 +350,7 @@ public:
     }
 
     void track_branch(const instruction& branch) {
-        [[unlikely]]
+        ARANCINI_UNLIKELY
         if (!branch.is_branch())
             throw backend_exception("attempting to track non-branch as branch instruction: {}", branch);
 
@@ -466,7 +466,7 @@ void instruction_builder::allocate() {
         logger.debug("Current allocation state {}\n", reg_alloc.state());
 
         for (auto& op : instr.operands()) {
-            [[unlikely]]
+            ARANCINI_UNLIKELY
             if (!op.is_def()) continue;
 
             // kill defs first
@@ -534,7 +534,7 @@ void instruction_builder::allocate() {
         if (instr.is_dead()) continue;
 
         for (auto& op : instr.operands()) {
-            [[unlikely]]
+            ARANCINI_UNLIKELY
             if (!op.is_use()) continue;
 
             if (const auto *vreg = std::get_if<register_operand>(&op.get()); vreg && vreg->is_virtual()) {
@@ -608,7 +608,7 @@ void instruction_builder::allocate() {
     //     throw backend_exception("Dangling allocations after register allocation:\n{} != {} (ref != actual)",
     //                             reg_alloc.state(), value);
 
-    [[unlikely]]
+    ARANCINI_UNLIKELY
     if (branch_tracker.in_branch_block())
         throw backend_exception("Register allocation detected incomplete branch block");
 

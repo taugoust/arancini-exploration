@@ -16,7 +16,7 @@
 using arancini::input::x86::reg_offsets;
 
 namespace arancini::ir {
-class deadflags_opt_visitor : public default_visitor {
+class deadflags_opt_visitor final : public default_visitor {
   public:
     deadflags_opt_visitor(void) { nr_flags_total_ = nr_flags_opt_total_ = 0; }
 

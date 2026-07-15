@@ -318,7 +318,7 @@ public:
 			auto element_size = dst.type().element_width() <= 32 ? 32 : 64;
 			std::size_t bitsize = element_size == 32 ? 5 : 6;
 			
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (width.value() > element_size - lsb.value())
 				throw backend_exception("Invalid width immediate {} for BFXIL instruction must fit into [1,{}] for lsb",
 										width, element_size - lsb.value(), lsb);
@@ -335,7 +335,7 @@ public:
 			auto element_size = dst.type().element_width() <= 32 ? 32 : 64;
 			std::size_t bitsize = element_size == 32 ? 5 : 6;
 			
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (width.value() > element_size - lsb.value())
 				throw backend_exception("Invalid width immediate {} for UBFX instruction must fit into [1,{}] for lsb",
 										width, element_size - lsb.value(), lsb);
@@ -352,7 +352,7 @@ public:
 			auto element_size = dst.type().element_width() <= 32 ? 32 : 64;
 			std::size_t bitsize = element_size == 32 ? 5 : 6;
 			
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (width.value() > element_size - lsb.value())
 				throw backend_exception("Invalid width immediate {} for BFI instruction must fit into [1,{}] for lsb",
 										width, element_size - lsb.value(), lsb);
@@ -479,7 +479,7 @@ public:
 		fmov(const register_operand& dest, const register_operand& src):
 			instruction("fmov", def(dest), use(src))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (dest.type().type_class() != ir::value_type_class::floating_point && 
 				src.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("Either first or second operand of fmov {}, {} must be floating-point",
@@ -489,7 +489,7 @@ public:
 		fmov(const register_operand& dest, const immediate_operand& src):
 			instruction("fmov", def(dest), use(src))
 		{ 
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (dest.type().type_class() != ir::value_type_class::floating_point && 
 				src.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("First operand of fmov {}, {} must be floating-point",
@@ -501,7 +501,7 @@ public:
 		fcmp(const register_operand& dest, const register_operand& src):
 			instruction("fcmp", use(dest), use(src))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() != ir::value_type_class::floating_point ||
 				dest.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("The first and second operands of fcmp {}, {} must be floating-point registers",
@@ -513,7 +513,7 @@ public:
 		fcmp(const register_operand& dest, const immediate_operand& imm):
 			instruction("fcmp", use(dest), use(imm))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (imm.value() != 0)
 				throw backend_exception("Instruction fcmp {}, {} can only take #0.0 as an immediate",
 										dest.type(), imm);
@@ -565,12 +565,12 @@ public:
 		fdiv(const register_operand& dest, const register_operand& src1, const register_operand& src2):
 			instruction("fdiv", def(dest), use(src1), use(src2))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src1.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("Second operand of fdiv must be floating-point instead of {}",
 										src1.type());
 
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src2.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("Third operand of fdiv must be floating-point instead of {}",
 										src1.type());
@@ -581,7 +581,7 @@ public:
 		fcvt(const register_operand& dest, const register_operand& src):
 			instruction("fcvt", def(dest), use(src))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() != ir::value_type_class::floating_point &&
 				dest.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("Either the first or second operand of fcvt {}, {} must be a floating-point register",
@@ -593,11 +593,11 @@ public:
 		fcvtzs(const register_operand& dest, const register_operand& src):
 			instruction("fcvtzs", def(dest), use(src))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("Second operand of fcvt {}, {} must be a floating-point register",
 										dest.type(), src.type());
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("First operand of fcvt {}, {} must be a general-purpose register",
 										dest.type(), src.type());
@@ -608,11 +608,11 @@ public:
 		fcvtzu(const register_operand& dest, const register_operand& src):
 			instruction("fcvtzu", def(dest), use(src))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("Second operand of fcvtzu {}, {} must be a floating-point register",
 										dest.type(), src.type());
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("First operand of fcvtzu {}, {} must be a general-purpose register",
 										dest.type(), src.type());
@@ -623,11 +623,11 @@ public:
 		fcvtas(const register_operand& dest, const register_operand& src):
 			instruction("fcvtas", def(dest), use(src))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("Second operand of fcvtas {}, {} must be a floating-point register",
 										dest.type(), src.type());
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (dest.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("First operand of fcvtas {}, {} must be a general-purpose register",
 										dest.type(), src.type());
@@ -638,11 +638,11 @@ public:
 		fcvtau(const register_operand& dest, const register_operand& src):
 			instruction("fcvtau", def(dest), use(src))
 		{
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("Second operand of fcvtau {}, {} must be a floating-point register",
 										dest.type(), src.type());
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (dest.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("First operand of fcvtau {}, {} must be a general-purpose register",
 										dest.type(), src.type());
@@ -653,11 +653,11 @@ public:
 		scvtf(const register_operand& dest, const register_operand& src):
 			instruction("scvtf", def(dest), use(src))
 		{ 
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() == ir::value_type_class::floating_point)
 				throw backend_exception("Second operand of scvtf {}, {} must be a general-purpose register",
 										dest.type(), src.type());
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (dest.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("First operand of scvtf {}, {} must be a floating-point register",
 										dest.type(), src.type());
@@ -668,11 +668,11 @@ public:
 		ucvtf(const register_operand& dest, const register_operand& src):
 			instruction("ucvtf", def(dest), use(src))
 		{ 
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (src.type().type_class() == ir::value_type_class::floating_point)
 				throw backend_exception("Second operand of ucvtf {}, {} must be a general-purpose register",
 										dest.type(), src.type());
-			[[unlikely]]
+			ARANCINI_UNLIKELY
 			if (dest.type().type_class() != ir::value_type_class::floating_point)
 				throw backend_exception("First operand of ucvtf {}, {} must be a floating-point register",
 										dest.type(), src.type());
@@ -717,11 +717,11 @@ public:
     ST_A_XR(name, w) \
     ST_A_XR(name,)
 
-    LD_A_XR_VARIANTS(ldxr);
-    LD_A_XR_VARIANTS(ldaxr);
+    LD_A_XR_VARIANTS(ldxr)
+    LD_A_XR_VARIANTS(ldaxr)
 
-    ST_A_XR_VARIANTS(stxr);
-    ST_A_XR_VARIANTS(stlxr);
+    ST_A_XR_VARIANTS(stxr)
+    ST_A_XR_VARIANTS(stlxr)
 
 #define AMO_SIZE_VARIANT(name, suffix_type, suffix_size) \
     struct name##suffix_type##suffix_size : instruction { \
@@ -747,25 +747,25 @@ public:
     AMO_SIZE_VARIANT_HW(name) \
     AMO_SIZE_VARIANTS(name, b) \
 
-    AMO_SIZE_VARIANT_BHW(swp);
+    AMO_SIZE_VARIANT_BHW(swp)
 
-    AMO_SIZE_VARIANT_BHW(ldadd);
+    AMO_SIZE_VARIANT_BHW(ldadd)
 
-    AMO_SIZE_VARIANT_BHW(ldclr);
+    AMO_SIZE_VARIANT_BHW(ldclr)
 
-    AMO_SIZE_VARIANT_BHW(ldeor);
+    AMO_SIZE_VARIANT_BHW(ldeor)
 
-    AMO_SIZE_VARIANT_BHW(ldset);
+    AMO_SIZE_VARIANT_BHW(ldset)
 
-    AMO_SIZE_VARIANT_BHW(ldsmax);
+    AMO_SIZE_VARIANT_BHW(ldsmax)
 
-    AMO_SIZE_VARIANT_BHW(ldsmin);
+    AMO_SIZE_VARIANT_BHW(ldsmin)
 
-    AMO_SIZE_VARIANT_BHW(ldumax);
+    AMO_SIZE_VARIANT_BHW(ldumax)
 
-    AMO_SIZE_VARIANT_BHW(ldumin);
+    AMO_SIZE_VARIANT_BHW(ldumin)
 
-	AMO_SIZE_VARIANT_BHW(cas);
+	AMO_SIZE_VARIANT_BHW(cas)
 
 	struct msr : instruction {
 		msr(const register_operand& sysreg, const register_operand& src):
@@ -809,7 +809,7 @@ private:
     ks_err status_;
     ks_engine* ks_;
 
-	static reg_or_imm check_immediate(const reg_or_imm& imm, ir::value_type type) { 
+	static reg_or_imm check_immediate(const reg_or_imm& imm, ir::value_type) {
 		return imm;
 	}
 };

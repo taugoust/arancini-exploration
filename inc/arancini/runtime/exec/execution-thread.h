@@ -29,8 +29,8 @@ class execution_thread {
     int *clear_child_tid_;
 
   private:
-    execution_context &owner_;
+    [[maybe_unused]] execution_context &owner_;
     void *cpu_state_;
-    size_t cpu_state_size_;
+    [[maybe_unused]] size_t cpu_state_size_;
 };
 } // namespace arancini::runtime::exec

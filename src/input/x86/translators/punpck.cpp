@@ -24,6 +24,7 @@ void punpck_translator::do_translate() {
         dst = builder().insert_vector_insert(dst->val(), 0, v0->val());
         dst = builder().insert_vector_insert(dst->val(), 1, v1->val());
         write_operand(0, dst->val());
+        break;
     }
 
     case XED_ICLASS_PUNPCKLBW:
@@ -43,7 +44,7 @@ void punpck_translator::do_translate() {
             value_type::vector(elt_type, input_size / elt_size), op1->val());
         auto dst = v0;
 
-        for (int i = 0; i < input_size / elt_size / 2; i++) {
+        for (std::size_t i = 0; i < input_size / elt_size / 2; i++) {
             dst = builder().insert_vector_insert(
                 dst->val(), i * 2,
                 builder().insert_vector_extract(v0->val(), i)->val());
@@ -73,7 +74,7 @@ void punpck_translator::do_translate() {
             value_type::vector(elt_type, input_size / elt_size), op1->val());
         auto dst = v0;
 
-        for (int i = 0; i < input_size / elt_size / 2; i++) {
+        for (std::size_t i = 0; i < input_size / elt_size / 2; i++) {
             dst = builder().insert_vector_insert(
                 dst->val(), 2 * i,
                 builder()

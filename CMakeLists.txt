@@ -3,11 +3,25 @@ cmake_minimum_required(VERSION 3.22)
 # Project
 project(arancini LANGUAGES C CXX)
 
-# Compile flags
+# Compile settings
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-Wall -std=c++17 -Wno-unused-function")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+
+option(ARANCINI_WARNINGS_AS_ERRORS
+       "Treat warnings as errors for first-party Arancini targets" OFF)
+
+function(arancini_enable_warnings target)
+  target_compile_options(
+    ${target}
+    PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:-Wall>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-Wextra>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-Wpedantic>)
+  if(ARANCINI_WARNINGS_AS_ERRORS)
+    target_compile_options(
+      ${target} PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:-Werror>)
+  endif()
+endfunction()
 
 add_compile_options(-fdiagnostics-color=always)
 

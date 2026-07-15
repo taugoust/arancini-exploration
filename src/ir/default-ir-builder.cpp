@@ -80,7 +80,7 @@ void default_ir_builder::insert_action(std::shared_ptr<action_node> a) {
     current_pkt_->append_action(a);
 }
 
-void default_ir_builder::process_node(node *n) {
+void default_ir_builder::process_node([[maybe_unused]] node *n) {
 #ifndef NDEBUG
     if (debug_ && current_pkt_) {
         n->set_metadata(

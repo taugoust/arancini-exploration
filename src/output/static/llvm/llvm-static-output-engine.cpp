@@ -72,10 +72,10 @@ llvm_static_output_engine_impl::llvm_static_output_engine_impl(
     const llvm_static_output_engine &e,
     const std::vector<std::pair<unsigned long, std::string>> &extern_fns,
     const std::vector<std::shared_ptr<ir::chunk>> &chunks)
-    : e_(e), extern_fns_(extern_fns), chunks_(chunks),
+    : fixed_branches(0), e_(e), extern_fns_(extern_fns), chunks_(chunks),
       llvm_context_(std::make_unique<LLVMContext>()),
       module_(std::make_unique<Module>("generated", *llvm_context_)),
-      in_br(false), fixed_branches(0) {}
+      in_br(false) {}
 
 void llvm_static_output_engine_impl::generate() {
     InitializeAllTargetInfos();
@@ -346,7 +346,9 @@ void llvm_static_output_engine_impl::build() {
     auto ret_block = BasicBlock::Create(*llvm_context_, "return", loop_fn);
     auto exit_block = BasicBlock::Create(*llvm_context_, "exit", loop_fn);
 
+#if defined(DEBUG)
     auto clk_ = module_->getOrInsertFunction("clk", types.clk_fn);
+#endif
     IRBuilder<> builder(*llvm_context_);
 
     builder.SetInsertPoint(entry_block);
@@ -528,7 +530,9 @@ void llvm_static_output_engine_impl::lower_static_fn_lookup(
     auto LookupFn = module_->getOrInsertFunction("lookup_static_fn_addr",
                                                  types.lookup_static_fn);
 
+#if defined(DEBUG)
     auto clk_ = module_->getOrInsertFunction("clk", types.clk_fn);
+#endif
 
     auto result = builder.CreateCall(LookupFn, {guestAddr});
     auto cmp = builder.CreateCmp(
@@ -651,7 +655,6 @@ Value *llvm_static_output_engine_impl::materialise_port(
         // auto gs_reg = builder.CreateGEP(types.cpu_state, state_arg, {
         // ConstantInt::get(types.i64, 0), ConstantInt::get(types.i32, 26) });
         // //TODO: move offset_2_idx into a common header
-        auto gs_reg = reg_to_alloca_.at(reg_offsets::GS);
         // address = builder.CreateAdd(address, builder.CreateLoad(types.i64,
         // gs_reg));
 #endif
@@ -1182,16 +1185,6 @@ Value *llvm_static_output_engine_impl::materialise_port(
             // return val;
         }
         case cast_op::convert: {
-            ::llvm::RoundingMode rm;
-            switch (cn->convert_type()) {
-            case fp_convert_type::round:
-                rm = ::llvm::RoundingMode::NearestTiesToEven;
-                break;
-            case fp_convert_type::trunc:
-                rm = ::llvm::RoundingMode::TowardZero;
-                break;
-            }
-
             if (cn->target_type().is_floating_point()) {
                 switch (cn->target_type().width()) {
                 case 32:
@@ -1203,6 +1196,9 @@ Value *llvm_static_output_engine_impl::materialise_port(
                 case 80:
                     ty = types.f80;
                     break;
+                default:
+                    throw std::runtime_error(
+                        "unsupported floating-point conversion width");
                 }
                 if (val->getType()->isFloatingPointTy()) {
                     if (val->getType()->getPrimitiveSizeInBits() >
@@ -1243,6 +1239,9 @@ Value *llvm_static_output_engine_impl::materialise_port(
             case 512:
                 ty = types.i512;
                 break;
+            default:
+                throw std::runtime_error(
+                    "unsupported integer conversion width");
             }
             return builder.CreateFPToSI(val, ty);
         }
@@ -1399,6 +1398,7 @@ Value *llvm_static_output_engine_impl::materialise_port(
                 return undefined_or_cleared;
             }
         }
+        throw std::runtime_error("unsupported bit-shift port kind");
     }
 
     case node_kinds::ternary_arith: {
@@ -1510,7 +1510,6 @@ Value *llvm_static_output_engine_impl::materialise_port(
         // auto gs_reg = builder.CreateGEP(types.cpu_state, state_arg, {
         // ConstantInt::get(types.i64, 0), ConstantInt::get(types.i32, 26) });
         // //TODO: move offset_2_idx into a common header
-        auto gs_reg = reg_to_alloca_.at(reg_offsets::GS);
         // lhs = builder.CreateAdd(lhs, builder.CreateLoad(types.i64, gs_reg));
 #endif
         auto value_port =
@@ -1571,11 +1570,10 @@ Value *llvm_static_output_engine_impl::materialise_port(
             default:
                 return ConstantInt::get(types.i8, 0);
             }
-            return ConstantInt::get(types.i8, 0);
         }
+        throw std::runtime_error("unsupported binary-atomic port kind");
     }
     case node_kinds::ternary_atomic: {
-        auto tan = (ternary_atomic_node *)n;
         if (p.kind() == port_kinds::value)
             return lower_node(builder, state_arg, pkt, n);
         if (p.kind() == port_kinds::zero) {
@@ -1632,6 +1630,7 @@ Value *llvm_static_output_engine_impl::materialise_port(
     case node_kinds::internal_call: {
         if (p.kind() == port_kinds::value)
             return lower_node(builder, state_arg, pkt, n);
+        throw std::runtime_error("unsupported internal-call port kind");
     }
     default:
         throw std::runtime_error(
@@ -1743,7 +1742,6 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
         // auto gs_reg = builder.CreateGEP(types.cpu_state, state_arg, {
         // ConstantInt::get(types.i64, 0), ConstantInt::get(types.i32, 26) });
         // //TODO: move offset_2_idx into a common header
-        auto gs_reg = reg_to_alloca_.at(reg_offsets::GS);
         // address = builder.CreateAdd(address, builder.CreateLoad(types.i64,
         // gs_reg));
 #endif
@@ -1767,15 +1765,9 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
     case node_kinds::write_pc: {
         auto wpn = (write_pc_node *)a;
 
-        auto dest_mem = builder.CreateGEP(
-            types.cpu_state, state_arg,
-            {ConstantInt::get(types.i64, 0), ConstantInt::get(types.i32, 0)},
-            "pcptr");
         auto dest_reg = reg_to_alloca_.at(reg_offsets::PC);
         auto val = lower_port(builder, state_arg, pkt, wpn->value());
 
-        // For Debug only! This will break the static_csel pass
-        // builder.CreateStore(val, dest_mem);
         return builder.CreateStore(val, dest_reg);
     }
 
@@ -1870,15 +1862,15 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
         // auto gs_reg = builder.CreateGEP(types.cpu_state, state_arg, {
         // ConstantInt::get(types.i64, 0), ConstantInt::get(types.i32, 26) });
         // //TODO: move offset_2_idx into a common header
-        auto gs_reg = reg_to_alloca_.at(reg_offsets::GS);
         // lhs = builder.CreateAdd(lhs, builder.CreateLoad(types.i64, gs_reg));
 #endif
         auto rhs = lower_port(builder, state_arg, pkt, ban->rhs());
 
-        // find the register rhs came from
-        auto reg_off = ban->rhs().owner()->kind() == node_kinds::read_reg
-                           ? ((read_reg_node *)ban->rhs().owner())->regoff()
-                           : -1;
+        // Find the register rhs came from, if any.
+        const auto *rhs_reg =
+            ban->rhs().owner()->kind() == node_kinds::read_reg
+                ? static_cast<const read_reg_node *>(ban->rhs().owner())
+                : nullptr;
 
         auto existing = node_ports_to_llvm_values_.find(&ban->val());
         if (existing != node_ports_to_llvm_values_.end())
@@ -1911,6 +1903,8 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
             if (ban->rhs().owner()->kind() == node_kinds::constant)
                 align = Align(4);
         } break;
+        default:
+            throw std::runtime_error("unsupported atomic operand width");
         }
         switch (ban->op()) {
         case binary_atomic_op::band:
@@ -1936,8 +1930,9 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
                 builder.CreateAtomicRMW(AtomicRMWInst::Add, lhs, rhs, align,
                                         AtomicOrdering::SequentiallyConsistent);
             val = builder.CreateAdd(out, rhs);
-            if (reg_off != -1) {
-                auto reg = reg_to_alloca_.at((reg_offsets)reg_off);
+            if (rhs_reg != nullptr) {
+                auto reg = reg_to_alloca_.at(
+                    static_cast<reg_offsets>(rhs_reg->regoff()));
                 builder.CreateStore(out, reg);
             }
             break;
@@ -1951,8 +1946,9 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
             out =
                 builder.CreateAtomicRMW(AtomicRMWInst::Xchg, lhs, rhs, align,
                                         AtomicOrdering::SequentiallyConsistent);
-            if (reg_off != -1) {
-                auto reg = reg_to_alloca_.at((reg_offsets)reg_off);
+            if (rhs_reg != nullptr) {
+                auto reg = reg_to_alloca_.at(
+                    static_cast<reg_offsets>(rhs_reg->regoff()));
                 builder.CreateStore(out, reg);
             }
             val = rhs;
@@ -1995,22 +1991,17 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
         // auto gs_reg = builder.CreateGEP(types.cpu_state, state_arg, {
         // ConstantInt::get(types.i64, 0), ConstantInt::get(types.i32, 26) });
         // //TODO: move offset_2_idx into a common header
-        auto gs_reg = reg_to_alloca_.at(reg_offsets::GS);
         // lhs = builder.CreateAdd(lhs, builder.CreateLoad(types.i64, gs_reg));
 #endif
         auto rhs = lower_port(builder, state_arg, pkt, tan->rhs());
         auto top = lower_port(builder, state_arg, pkt, tan->top());
         auto rax_node = tan->rhs().owner();
-        assert((rax_node->kind() == node_kinds::read_reg) ||
-               "Cmpxcg[top] is not a register");
-        auto reg_idx = ((read_reg_node *)rax_node)->regidx();
-        // auto rax_reg = builder.CreateGEP(types.cpu_state, state_arg, {
-        // ConstantInt::get(types.i64, 0), ConstantInt::get(types.i32, reg_idx)
-        // });
+        if (rax_node->kind() != node_kinds::read_reg) {
+            throw std::runtime_error("Cmpxchg rhs is not a register");
+        }
         auto rax_reg = reg_to_alloca_.at(reg_offsets::RAX);
         auto z_reg = reg_to_alloca_.at(reg_offsets::ZF);
 
-        Value *out;
         switch (tan->op()) {
         case ternary_atomic_op::cmpxchg: {
 
@@ -2029,6 +2020,8 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
             case 64:
                 align = Align(8);
                 break;
+            default:
+                throw std::runtime_error("unsupported atomic operand width");
             }
             lhs = builder.CreateIntToPtr(lhs,
                                          PointerType::get(rhs->getType(), 256));
@@ -2059,7 +2052,6 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
             throw std::runtime_error("unsupported tern atomic operation " +
                                      std::to_string((int)tan->op()));
         }
-        return out;
     }
     case node_kinds::internal_call: {
         auto icn = (internal_call_node *)a;
@@ -2072,7 +2064,9 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
             "execute_internal_call", types.internal_call_handler);
         if (icn->fn().name() == "handle_syscall") {
 
+#if defined(DEBUG)
             auto clk_ = module_->getOrInsertFunction("clk", types.clk_fn);
+#endif
 
             auto current_bb = builder.GetInsertBlock();
             auto exit_block = BasicBlock::Create(*llvm_context_, "finalize",
@@ -2122,7 +2116,7 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
             const std::vector<port *> &args = icn->args();
             const internal_function &func = icn->fn();
 
-            Type *retty;
+            Type *retty = nullptr;
             if (ret.type().is_floating_point()) {
                 if (ret.type().element_width() == 32) {
                     retty = types.f32;
@@ -2154,6 +2148,10 @@ Value *llvm_static_output_engine_impl::lower_node(IRBuilder<> &builder,
                 }
             } else if (ret.type().type_class() == value_type_class::none) {
                 retty = types.vd;
+            }
+            if (retty == nullptr) {
+                throw std::runtime_error(
+                    "unsupported internal_call return type");
             }
             std::vector<Type *> argtys;
             std::vector<Value *> arg_vals;
@@ -2253,8 +2251,7 @@ llvm_static_output_engine_impl::load_args(IRBuilder<> *builder,
 };
 
 void llvm_static_output_engine_impl::unwrap_ret(IRBuilder<> *builder,
-                                                Value *value,
-                                                Argument *state_arg) {
+                                                Value *value, Argument *) {
     builder->CreateStore(builder->CreateExtractValue(value, {0}),
                          reg_to_alloca_.at(reg_offsets::RAX));
     builder->CreateStore(builder->CreateExtractValue(value, {1}),
@@ -2266,8 +2263,7 @@ void llvm_static_output_engine_impl::unwrap_ret(IRBuilder<> *builder,
 };
 
 std::vector<Value *>
-llvm_static_output_engine_impl::wrap_ret(IRBuilder<> *builder,
-                                         Argument *state_arg) {
+llvm_static_output_engine_impl::wrap_ret(IRBuilder<> *builder, Argument *) {
     std::vector<Value *> ret;
     ret.push_back(
         builder->CreateLoad(types.i64, reg_to_alloca_.at(reg_offsets::RAX)));
@@ -2333,7 +2329,9 @@ void llvm_static_output_engine_impl::lower_chunk(IRBuilder<> *builder,
 #endif
     auto state_arg = fn->getArg(0);
 
+#if defined(DEBUG)
     auto clk_ = module_->getOrInsertFunction("clk", types.clk_fn);
+#endif
 
     auto pre = BasicBlock::Create(*llvm_context_, fn->getName() + "-pre", fn);
     auto mid = BasicBlock::Create(*llvm_context_, fn->getName() + "-mid");
@@ -2386,7 +2384,7 @@ void llvm_static_output_engine_impl::lower_chunk(IRBuilder<> *builder,
 
         if (packet_block != nullptr) {
             // falltrhough!
-            auto ft = builder->CreateBr(next_block);
+            builder->CreateBr(next_block);
         }
 
         packet_block = next_block;
@@ -2728,7 +2726,7 @@ void llvm_static_output_engine_impl::optimise() {
     PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
     PB.registerOptimizerLastEPCallback(
-        [&](ModulePassManager &mpm, OptimizationLevel Level) {
+        [&](ModulePassManager &mpm, OptimizationLevel) {
             mpm.addPass(createModuleToFunctionPassAdaptor(FenceCombinePass()));
         });
 

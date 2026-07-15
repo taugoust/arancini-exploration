@@ -13,6 +13,7 @@ add_library(
   arancini-output-arm64
   arm64-assembler.cpp arm64-dynamic-output-engine.cpp arm64-instruction.cpp
   arm64-instruction-builder.cpp arm64-translation-context.cpp)
+arancini_enable_warnings(arancini-output-arm64)
 
 target_include_directories(arancini-output-arm64
                            PUBLIC ${INCLUDE_PATH} ${Keystone_INCLUDE_PATH})

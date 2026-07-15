@@ -270,7 +270,7 @@ void llvm_arg_visitor::resolve_waiting() {
 }
 
 Instruction *llvm_static_output_engine_impl::create_static_br(
-    IRBuilder<> *builder, std::shared_ptr<packet> pkt,
+    IRBuilder<> *builder, std::shared_ptr<packet>,
     std::map<unsigned long, BasicBlock *> *blocks, BasicBlock *mid) {
     auto it = builder->GetInsertPoint();
     if ((--it)->getOpcode() != Instruction::Store)
@@ -315,7 +315,7 @@ Instruction *llvm_static_output_engine_impl::create_static_br(
 };
 
 Instruction *llvm_static_output_engine_impl::create_static_condbr(
-    IRBuilder<> *builder, std::shared_ptr<packet> pkt,
+    IRBuilder<> *builder, std::shared_ptr<packet>,
     std::map<unsigned long, BasicBlock *> *blocks, BasicBlock *mid) {
     auto it = builder->GetInsertPoint();
     if ((--it)->getOpcode() != Instruction::Store)
