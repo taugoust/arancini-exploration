@@ -835,6 +835,8 @@ Value *llvm_static_output_engine_impl::materialise_port(
             case binary_arith_op::div: {
                 if (is_f_or_fv)
                     return builder.CreateFDiv(lhs, rhs);
+                if (ban->val().type().is_signed())
+                    return builder.CreateSDiv(lhs, rhs);
                 return builder.CreateUDiv(lhs, rhs);
             }
             case binary_arith_op::cmpeq: {

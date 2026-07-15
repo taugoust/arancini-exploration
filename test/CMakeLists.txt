@@ -850,7 +850,7 @@ if(static-musl-mapreduce-phoenix-root)
   file(
     GENERATE
     OUTPUT "${phoenix-pca-mapreduce-hybrid-config}"
-    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"0826174a142f24fece8fa15a7dc832ada06f9fd7b2a0317910b83b9409cce2e1\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {${phoenix-mapreduce-env}    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"cde797f4a38a0aa4c16275aad5513ecdf646f25adf603b89a540a08fd7ad0db0\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
   add_test(
     NAME "phoenix-pca-mapreduce-static-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-mapreduce-bin}"

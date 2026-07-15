@@ -217,6 +217,43 @@ EOF
 
         defaultPackage = arancini-package;
         checks = native_pkgs.lib.optionalAttrs (system == "aarch64-linux") {
+          static-llvm-integer-division = native_pkgs.runCommand
+            "arancini-static-llvm-integer-division"
+            {
+              nativeBuildInputs = with native_pkgs; [
+                clang_18
+                gcc
+                llvmPackages_18.lld
+              ];
+            }
+            ''
+              cp ${self.outPath}/test/static-llvm-integer-division.S division.S
+              clang --target=x86_64-unknown-linux-gnu -nostdlib -static \
+                -fuse-ld=lld -Wl,--build-id=none,-e,_start \
+                -o division.x86_64 division.S
+
+              ln -s ${self.outPath}/aarch64.exec.lds
+              ARANCINI_ENABLE_LOG=false ${arancini-package}/bin/txlat \
+                --input division.x86_64 --output division.aarch64 \
+                --cxx-compiler-path clang++ \
+                --runtime-lib-path \
+                  ${arancini-package}/lib/libarancini-runtime.so \
+                --dump-llvm division
+
+              grep -q " sdiv i64 " division.ll
+              grep -q " udiv i64 " division.ll
+
+              printf 'ok\n' > expected.stdout
+              ARANCINI_ENABLE_LOG=false \
+                LD_LIBRARY_PATH=${arancini-package}/lib \
+                ./division.aarch64 > actual.stdout 2> actual.stderr
+              cmp expected.stdout actual.stdout
+              test ! -s actual.stderr
+
+              mkdir -p "$out"
+              touch "$out/passed"
+            '';
+
           phoenix-histogram-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-dynamic-no-static";
             cmakeFlags = [
