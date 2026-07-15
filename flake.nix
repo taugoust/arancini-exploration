@@ -129,364 +129,16 @@
         phoenix-seq = phoenix.packages.${system}.phoenix-x86_64-musl-static-seq;
         phoenix-pthread = phoenix.packages.${system}.phoenix-x86_64-musl-static-pthread;
         phoenix-mapreduce = phoenix.packages.${system}.phoenix-x86_64-musl-static-all;
-        phoenix-musl-dynamic-seq-bin = phoenix-seq.overrideAttrs (_old: {
-          name = "phoenix-x86_64-musl-dynamic-seq";
-          dontPatchELF = true;
-          dontFixup = true;
-          hardeningDisable = [ "all" ];
-          buildPhase = ''
-            runHook preBuild
-            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE -no-pie"
-            cc="x86_64-unknown-linux-musl-gcc"
-            ar="x86_64-unknown-linux-musl-ar"
-            ranlib="x86_64-unknown-linux-musl-ranlib"
-            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            for app in histogram kmeans linear_regression matrix_multiply pca string_match word_count; do
-              make -C "phoenix-2.0/tests/$app" "$app-seq" \
-                CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            done
-            runHook postBuild
-          '';
-          installPhase = ''
-            runHook preInstall
-            mkdir -p "$out/bin" "$out/data"
-            for app in histogram kmeans linear_regression matrix_multiply pca string_match word_count; do
-              install -m755 "phoenix-2.0/tests/$app/$app-seq" "$out/bin/$app-seq-v2"
-              cp -p "$out/bin/$app-seq-v2" "$out/bin/$app-seq"
-            done
-            cp -a ${phoenix-seq}/data/. "$out/data/"
-            runHook postInstall
-          '';
-        });
         phoenix-musl-dynamic-seq =
-          phoenix.packages.${system}.phoenix-x86_64-musl-dynamic-seq
-            or phoenix-musl-dynamic-seq-bin;
-        phoenix-musl-dynamic-pthread-bin = phoenix-pthread.overrideAttrs (_old: {
-          name = "phoenix-x86_64-musl-dynamic-pthread";
-          dontPatchELF = true;
-          dontFixup = true;
-          hardeningDisable = [ "all" ];
-          buildPhase = ''
-            runHook preBuild
-            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE -no-pie"
-            cc="x86_64-unknown-linux-musl-gcc"
-            ar="x86_64-unknown-linux-musl-ar"
-            ranlib="x86_64-unknown-linux-musl-ranlib"
-            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/histogram histogram-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/kmeans kmeans-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/linear_regression linear_regression-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/matrix_multiply matrix_multiply-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/string_match string_match-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/word_count word_count-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            runHook postBuild
-          '';
-          installPhase = ''
-            runHook preInstall
-            mkdir -p "$out/bin" "$out/data"
-            install -m755 phoenix-2.0/tests/histogram/histogram-pthread "$out/bin/histogram-pthread-v2"
-            cp -p "$out/bin/histogram-pthread-v2" "$out/bin/histogram-pthread"
-            install -m755 phoenix-2.0/tests/kmeans/kmeans-pthread "$out/bin/kmeans-pthread-v2"
-            cp -p "$out/bin/kmeans-pthread-v2" "$out/bin/kmeans-pthread"
-            install -m755 phoenix-2.0/tests/linear_regression/linear_regression-pthread "$out/bin/linear_regression-pthread-v2"
-            cp -p "$out/bin/linear_regression-pthread-v2" "$out/bin/linear_regression-pthread"
-            install -m755 phoenix-2.0/tests/matrix_multiply/matrix_multiply-pthread "$out/bin/matrix_multiply-pthread-v2"
-            cp -p "$out/bin/matrix_multiply-pthread-v2" "$out/bin/matrix_multiply-pthread"
-            install -m755 phoenix-2.0/tests/string_match/string_match-pthread "$out/bin/string_match-pthread-v2"
-            cp -p "$out/bin/string_match-pthread-v2" "$out/bin/string_match-pthread"
-            install -m755 phoenix-2.0/tests/word_count/word_count-pthread "$out/bin/word_count-pthread-v2"
-            cp -p "$out/bin/word_count-pthread-v2" "$out/bin/word_count-pthread"
-            cp -a ${phoenix-pthread}/data/. "$out/data/"
-            runHook postInstall
-          '';
-        });
+          phoenix.packages.${system}.phoenix-x86_64-musl-dynamic-seq;
         phoenix-musl-dynamic-pthread =
-          phoenix.packages.${system}.phoenix-x86_64-musl-dynamic-all
-            or phoenix-musl-dynamic-pthread-bin;
-        phoenix-musl-dynamic-pthread-pca-bin = phoenix-pthread.overrideAttrs (_old: {
-          name = "phoenix-x86_64-musl-dynamic-pthread-pca";
-          dontPatchELF = true;
-          dontFixup = true;
-          hardeningDisable = [ "all" ];
-          buildPhase = ''
-            runHook preBuild
-            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE -no-pie"
-            cc="x86_64-unknown-linux-musl-gcc"
-            ar="x86_64-unknown-linux-musl-ar"
-            ranlib="x86_64-unknown-linux-musl-ranlib"
-            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/pca pca-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            runHook postBuild
-          '';
-          installPhase = ''
-            runHook preInstall
-            mkdir -p "$out/bin" "$out/data"
-            install -m755 phoenix-2.0/tests/pca/pca-pthread "$out/bin/pca-pthread-v2"
-            cp -p "$out/bin/pca-pthread-v2" "$out/bin/pca-pthread"
-            cp -a ${phoenix-pthread}/data/. "$out/data/"
-            runHook postInstall
-          '';
-        });
-        glibc-x86_64-pkgs = native_pkgs.pkgsCross.gnu64;
-        phoenix-glibc-dynamic-seq-bin = glibc-x86_64-pkgs.stdenv.mkDerivation {
-          pname = "phoenix-x86_64-glibc-dynamic-seq";
-          version = "2.0";
-          src = phoenix.outPath;
-          nativeBuildInputs = with native_pkgs; [ gnumake gnused coreutils ];
-          dontConfigure = true;
-          dontStrip = true;
-          dontPatchELF = true;
-          dontFixup = true;
-          hardeningDisable = [ "all" ];
-          postPatch = ''
-            find phoenix-2.0 sample_apps -type f \( -name '*.c' -o -name '*.h' \) \
-              -exec sed -i 's@#include <sys/unistd.h>@#include <unistd.h>@' {} +
-            substituteInPlace phoenix-2.0/tests/histogram/histogram-seq.c \
-              --replace-fail '   return 0;' '   exit(0);'
-            substituteInPlace phoenix-2.0/tests/kmeans/kmeans-seq.c \
-              --replace-fail '    return 0;  ' '    exit(0);'
-            substituteInPlace phoenix-2.0/tests/linear_regression/linear_regression-seq.c \
-              --replace-fail '   return 0;' '   exit(0);'
-            substituteInPlace phoenix-2.0/tests/matrix_multiply/matrix_multiply-seq.c \
-              --replace-fail '   return 0;' '   exit(0);'
-            substituteInPlace phoenix-2.0/tests/pca/pca-seq.c \
-              --replace-fail '   return 0;' '   exit(0);'
-            substituteInPlace phoenix-2.0/tests/string_match/string_match-seq.c \
-              --replace-fail '   return 0;' '   exit(0);'
-            substituteInPlace phoenix-2.0/tests/word_count/word_count-seq.c \
-              --replace-fail '   return 0;' '   exit(0);'
-          '';
-          buildPhase = ''
-            runHook preBuild
-            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE"
-            cc="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}gcc -no-pie"
-            ar="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ar"
-            ranlib="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ranlib"
-            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/histogram histogram-seq \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/kmeans kmeans-seq \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/linear_regression linear_regression-seq \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/matrix_multiply matrix_multiply-seq \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/pca pca-seq \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/string_match string_match-seq \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/word_count word_count-seq \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            runHook postBuild
-          '';
-          installPhase = ''
-            runHook preInstall
-            mkdir -p "$out/bin"
-            install -m755 phoenix-2.0/tests/histogram/histogram-seq "$out/bin/histogram-seq-v2"
-            cp -p "$out/bin/histogram-seq-v2" "$out/bin/histogram-seq"
-            install -m755 phoenix-2.0/tests/kmeans/kmeans-seq "$out/bin/kmeans-seq-v2"
-            cp -p "$out/bin/kmeans-seq-v2" "$out/bin/kmeans-seq"
-            install -m755 phoenix-2.0/tests/linear_regression/linear_regression-seq "$out/bin/linear_regression-seq-v2"
-            cp -p "$out/bin/linear_regression-seq-v2" "$out/bin/linear_regression-seq"
-            install -m755 phoenix-2.0/tests/matrix_multiply/matrix_multiply-seq "$out/bin/matrix_multiply-seq-v2"
-            cp -p "$out/bin/matrix_multiply-seq-v2" "$out/bin/matrix_multiply-seq"
-            install -m755 phoenix-2.0/tests/pca/pca-seq "$out/bin/pca-seq-v2"
-            cp -p "$out/bin/pca-seq-v2" "$out/bin/pca-seq"
-            install -m755 phoenix-2.0/tests/string_match/string_match-seq "$out/bin/string_match-seq-v2"
-            cp -p "$out/bin/string_match-seq-v2" "$out/bin/string_match-seq"
-            install -m755 phoenix-2.0/tests/word_count/word_count-seq "$out/bin/word_count-seq-v2"
-            cp -p "$out/bin/word_count-seq-v2" "$out/bin/word_count-seq"
-            runHook postInstall
-          '';
-        };
-        phoenix-glibc-dynamic-pthread-bin = glibc-x86_64-pkgs.stdenv.mkDerivation {
-          pname = "phoenix-x86_64-glibc-dynamic-pthread";
-          version = "2.0";
-          src = phoenix.outPath;
-          nativeBuildInputs = with native_pkgs; [ gnumake gnused coreutils ];
-          dontConfigure = true;
-          dontStrip = true;
-          dontPatchELF = true;
-          dontFixup = true;
-          hardeningDisable = [ "all" ];
-          postPatch = ''
-            find phoenix-2.0 sample_apps -type f \( -name '*.c' -o -name '*.h' \) \
-              -exec sed -i 's@#include <sys/unistd.h>@#include <unistd.h>@' {} +
-            substituteInPlace phoenix-2.0/tests/string_match/string_match-pthread.c \
-              --replace-fail '#include <crypt.h>' '/* crypt.h unused */'
-          '';
-          buildPhase = ''
-            runHook preBuild
-            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -fno-PIE -no-pie -pthread"
-            cc="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}gcc"
-            ar="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ar"
-            ranlib="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ranlib"
-            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            for app in histogram kmeans linear_regression matrix_multiply pca string_match word_count; do
-              make -C "phoenix-2.0/tests/$app" "$app-pthread" \
-                CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            done
-            runHook postBuild
-          '';
-          installPhase = ''
-            runHook preInstall
-            mkdir -p "$out/bin" "$out/data"
-            for app in histogram kmeans linear_regression matrix_multiply pca string_match word_count; do
-              install -m755 "phoenix-2.0/tests/$app/$app-pthread" "$out/bin/$app-pthread-v2"
-              cp -p "$out/bin/$app-pthread-v2" "$out/bin/$app-pthread"
-            done
-            cp -a ${phoenix-pthread}/data/. "$out/data/"
-            runHook postInstall
-          '';
-        };
-        phoenix-glibc-static-pthread-bin = glibc-x86_64-pkgs.stdenv.mkDerivation {
-          pname = "phoenix-x86_64-glibc-static-pthread";
-          version = "2.0";
-          src = phoenix.outPath;
-          nativeBuildInputs = with native_pkgs; [ gnumake gnused coreutils ];
-          dontConfigure = true;
-          dontStrip = true;
-          dontPatchELF = true;
-          dontFixup = true;
-          hardeningDisable = [ "all" ];
-          postPatch = ''
-            find phoenix-2.0 sample_apps -type f \( -name '*.c' -o -name '*.h' \) \
-              -exec sed -i 's@#include <sys/unistd.h>@#include <unistd.h>@' {} +
-            substituteInPlace phoenix-2.0/tests/string_match/string_match-pthread.c \
-              --replace-fail '#include <crypt.h>' '/* crypt.h unused */' \
-              --replace-fail '    srand( (unsigned)time( NULL ) );' '    srand(1);' \
-              --replace-fail '    gettimeofday(&starttime,0);' '    memset(&starttime, 0, sizeof(starttime));' \
-              --replace-fail '    gettimeofday(&endtime,0);' '    memset(&endtime, 0, sizeof(endtime));'
-            substituteInPlace phoenix-2.0/tests/word_count/word_count-pthread.c \
-              --replace-fail '   gettimeofday(&starttime,0);' '   memset(&starttime, 0, sizeof(starttime));' \
-              --replace-fail '   gettimeofday(&endtime,0);' '   memset(&endtime, 0, sizeof(endtime));' \
-              --replace-fail '   return 0;
-}' '   fflush(stdout);
-   return 0;
-}'
-          '';
-          buildPhase = ''
-            runHook preBuild
-            cflags="-D_LINUX_ -D__x86_64__ -D_GNU_SOURCE -Wall -O2 -g -fno-PIE -mno-avx -mno-avx2 -fno-tree-vectorize -fno-stack-protector -pthread -L${glibc-x86_64-pkgs.glibc.static}/lib"
-            cc="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}gcc -static -no-pie"
-            ar="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ar"
-            ranlib="${glibc-x86_64-pkgs.stdenv.cc.targetPrefix}ranlib"
-            make -C phoenix-2.0/src CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/histogram histogram-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/kmeans kmeans-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/linear_regression linear_regression-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/matrix_multiply matrix_multiply-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/pca pca-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/string_match string_match-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            make -C phoenix-2.0/tests/word_count word_count-pthread \
-              CC="$cc" AR="$ar" RANLIB="$ranlib" CFLAGS="$cflags"
-            runHook postBuild
-          '';
-          installPhase = ''
-            runHook preInstall
-            mkdir -p "$out/bin" "$out/data"
-            install -m755 phoenix-2.0/tests/histogram/histogram-pthread \
-              "$out/bin/histogram-pthread-v2-static-glibc"
-            cp -p "$out/bin/histogram-pthread-v2-static-glibc" \
-              "$out/bin/histogram-pthread-static-glibc"
-            install -m755 phoenix-2.0/tests/kmeans/kmeans-pthread \
-              "$out/bin/kmeans-pthread-v2-static-glibc"
-            cp -p "$out/bin/kmeans-pthread-v2-static-glibc" \
-              "$out/bin/kmeans-pthread-static-glibc"
-            install -m755 phoenix-2.0/tests/linear_regression/linear_regression-pthread \
-              "$out/bin/linear_regression-pthread-v2-static-glibc"
-            cp -p "$out/bin/linear_regression-pthread-v2-static-glibc" \
-              "$out/bin/linear_regression-pthread-static-glibc"
-            install -m755 phoenix-2.0/tests/matrix_multiply/matrix_multiply-pthread \
-              "$out/bin/matrix_multiply-pthread-v2-static-glibc"
-            cp -p "$out/bin/matrix_multiply-pthread-v2-static-glibc" \
-              "$out/bin/matrix_multiply-pthread-static-glibc"
-            install -m755 phoenix-2.0/tests/pca/pca-pthread \
-              "$out/bin/pca-pthread-v2-static-glibc"
-            cp -p "$out/bin/pca-pthread-v2-static-glibc" \
-              "$out/bin/pca-pthread-static-glibc"
-            install -m755 phoenix-2.0/tests/string_match/string_match-pthread \
-              "$out/bin/string_match-pthread-v2-static-glibc"
-            cp -p "$out/bin/string_match-pthread-v2-static-glibc" \
-              "$out/bin/string_match-pthread-static-glibc"
-            install -m755 phoenix-2.0/tests/word_count/word_count-pthread \
-              "$out/bin/word_count-pthread-v2-static-glibc"
-            cp -p "$out/bin/word_count-pthread-v2-static-glibc" \
-              "$out/bin/word_count-pthread-static-glibc"
-            cp -a ${phoenix-pthread}/data/. "$out/data/"
-            runHook postInstall
-          '';
-        };
-        phoenix-glibc-static-pthread =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-static-pthread
-            or phoenix-glibc-static-pthread-bin;
-        phoenix-glibc-dynamic-pthread =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-pthread
-            or phoenix-glibc-dynamic-pthread-bin;
+          phoenix.packages.${system}.phoenix-x86_64-musl-dynamic-pthread;
         phoenix-glibc-dynamic-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq or null;
-        phoenix-glibc-dynamic-histogram-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq
-            or phoenix-glibc-dynamic-seq-bin;
-        phoenix-glibc-dynamic-kmeans-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq
-            or phoenix-glibc-dynamic-seq-bin;
-        phoenix-glibc-dynamic-linear-regression-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq
-            or phoenix-glibc-dynamic-seq-bin;
-        phoenix-glibc-dynamic-matrix-multiply-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq
-            or phoenix-glibc-dynamic-seq-bin;
-        phoenix-glibc-dynamic-pca-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq
-            or phoenix-glibc-dynamic-seq-bin;
-        phoenix-glibc-dynamic-string-match-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq
-            or phoenix-glibc-dynamic-seq-bin;
-        phoenix-glibc-dynamic-word-count-seq =
-          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq
-            or phoenix-glibc-dynamic-seq-bin;
-        phoenix-linear-regression-seq-bin = phoenix-seq.overrideAttrs (_old: {
-          installPhase = ''
-            mkdir -p "$out/bin"
-            install -m755 phoenix-2.0/tests/linear_regression/linear_regression-seq \
-              "$out/bin/linear_regression-seq-static-musl"
-          '';
-        });
-        phoenix-matrix-multiply-seq-bin = phoenix-seq.overrideAttrs (_old: {
-          installPhase = ''
-            mkdir -p "$out/bin"
-            install -m755 phoenix-2.0/tests/matrix_multiply/matrix_multiply-seq \
-              "$out/bin/matrix_multiply-seq-static-musl"
-          '';
-        });
-        phoenix-string-match-seq-bin = phoenix-seq.overrideAttrs (_old: {
-          installPhase = ''
-            mkdir -p "$out/bin"
-            install -m755 phoenix-2.0/tests/string_match/string_match-seq \
-              "$out/bin/string_match-seq-static-musl"
-          '';
-        });
-        phoenix-word-count-seq-bin = phoenix-seq.overrideAttrs (_old: {
-          installPhase = ''
-            mkdir -p "$out/bin"
-            install -m755 phoenix-2.0/tests/word_count/word_count-seq \
-              "$out/bin/word_count-seq-static-musl"
-          '';
-        });
+          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-seq;
+        phoenix-glibc-dynamic-pthread =
+          phoenix.packages.${system}.phoenix-x86_64-glibc-dynamic-pthread;
+        phoenix-glibc-static-pthread =
+          phoenix.packages.${system}.phoenix-x86_64-glibc-static-pthread;
         mkPhoenixCheck =
           {
             name,
@@ -528,7 +180,8 @@ add_subdirectory("${self.outPath}/test" test)
 EOF
 
               cmake -S test-src -B build ${native_pkgs.lib.escapeShellArgs cmakeFlags}
-              ctest --test-dir build --output-on-failure -R ${native_pkgs.lib.escapeShellArg testRegex}
+              ctest --test-dir build --output-on-failure --no-tests=error \
+                -R ${native_pkgs.lib.escapeShellArg testRegex}
 
               mkdir -p "$out"
               touch "$out/passed"
@@ -584,35 +237,35 @@ EOF
           phoenix-linear-regression-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-pthread-static-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
             ];
             testRegex = "^phoenix-linear-regression-pthread-static-glibc:dynamic$";
           };
           phoenix-matrix-multiply-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-pthread-static-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
             ];
             testRegex = "^phoenix-matrix-multiply-pthread-static-glibc:dynamic$";
           };
           phoenix-pca-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-static-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
             ];
             testRegex = "^phoenix-pca-pthread-static-glibc:dynamic$";
           };
           phoenix-string-match-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-pthread-static-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
             ];
             testRegex = "^phoenix-string-match-pthread-static-glibc:dynamic$";
           };
           phoenix-word-count-pthread-static-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-pthread-static-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread-bin}"
+              "-Dstatic-glibc-pthread-phoenix-root=${phoenix-glibc-static-pthread}"
             ];
             testRegex = "^phoenix-word-count-pthread-static-glibc:dynamic$";
           };
@@ -1036,7 +689,7 @@ EOF
           phoenix-pca-pthread-musl-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-pthread-musl-dynamic-no-static";
             cmakeFlags = [
-              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread-pca-bin}"
+              "-Ddynamic-musl-pthread-phoenix-root=${phoenix-musl-dynamic-pthread}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-pca-pthread-musl:dynamic$";
@@ -1172,7 +825,7 @@ EOF
           phoenix-histogram-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-histogram-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-histogram-seq-glibc:dynamic$";
@@ -1180,7 +833,7 @@ EOF
           phoenix-histogram-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-histogram-glibc-dynamic-hybrid";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-histogram-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-histogram-seq-glibc:hybrid$";
@@ -1188,7 +841,7 @@ EOF
           phoenix-kmeans-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-kmeans-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-kmeans-seq-glibc:dynamic$";
@@ -1196,7 +849,7 @@ EOF
           phoenix-kmeans-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-kmeans-glibc-dynamic-hybrid";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-kmeans-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-kmeans-seq-glibc:hybrid$";
@@ -1204,7 +857,7 @@ EOF
           phoenix-linear-regression-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-linear-regression-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-linear-regression-seq-glibc:dynamic$";
@@ -1212,7 +865,7 @@ EOF
           phoenix-linear-regression-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-glibc-dynamic-hybrid";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-linear-regression-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-linear-regression-seq-glibc:hybrid$";
@@ -1220,7 +873,7 @@ EOF
           phoenix-matrix-multiply-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-matrix-multiply-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-matrix-multiply-seq-glibc:dynamic$";
@@ -1228,7 +881,7 @@ EOF
           phoenix-matrix-multiply-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-glibc-dynamic-hybrid";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-matrix-multiply-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-matrix-multiply-seq-glibc:hybrid$";
@@ -1236,7 +889,7 @@ EOF
           phoenix-pca-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-pca-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-pca-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-pca-seq-glibc:dynamic$";
@@ -1244,7 +897,7 @@ EOF
           phoenix-pca-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-pca-glibc-dynamic-hybrid";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-pca-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-pca-seq-glibc:hybrid$";
@@ -1252,7 +905,7 @@ EOF
           phoenix-string-match-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-string-match-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-string-match-seq-glibc:dynamic$";
@@ -1260,7 +913,7 @@ EOF
           phoenix-string-match-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-glibc-dynamic-hybrid";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-string-match-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-string-match-seq-glibc:hybrid$";
@@ -1268,7 +921,7 @@ EOF
           phoenix-word-count-glibc-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-glibc-dynamic-no-static";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-word-count-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-word-count-seq-glibc:dynamic$";
@@ -1276,7 +929,7 @@ EOF
           phoenix-word-count-glibc-dynamic-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-glibc-dynamic-hybrid";
             cmakeFlags = [
-              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-word-count-seq}"
+              "-Ddynamic-phoenix-root=${phoenix-glibc-dynamic-seq}"
               "-Dhost-libatomic-libdir=:${native_pkgs.stdenv.cc.cc.lib}/lib"
             ];
             testRegex = "^phoenix-word-count-seq-glibc:hybrid$";
@@ -1298,56 +951,56 @@ EOF
           phoenix-linear-regression-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-musl-phoenix-root=${phoenix-linear-regression-seq-bin}"
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
             testRegex = "^phoenix-linear-regression-seq-static-musl:dynamic$";
           };
           phoenix-linear-regression-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-linear-regression-static-musl-hybrid";
             cmakeFlags = [
-              "-Dstatic-musl-phoenix-root=${phoenix-linear-regression-seq-bin}"
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
             testRegex = "^phoenix-linear-regression-seq-static-musl:hybrid$";
           };
           phoenix-matrix-multiply-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-musl-phoenix-root=${phoenix-matrix-multiply-seq-bin}"
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
             testRegex = "^phoenix-matrix-multiply-seq-static-musl:dynamic$";
           };
           phoenix-matrix-multiply-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-matrix-multiply-static-musl-hybrid";
             cmakeFlags = [
-              "-Dstatic-musl-phoenix-root=${phoenix-matrix-multiply-seq-bin}"
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
             testRegex = "^phoenix-matrix-multiply-seq-static-musl:hybrid$";
           };
           phoenix-string-match-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-musl-phoenix-root=${phoenix-string-match-seq-bin}"
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
             testRegex = "^phoenix-string-match-seq-static-musl:dynamic$";
           };
           phoenix-string-match-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-string-match-static-musl-hybrid";
             cmakeFlags = [
-              "-Dstatic-musl-phoenix-root=${phoenix-string-match-seq-bin}"
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
             testRegex = "^phoenix-string-match-seq-static-musl:hybrid$";
           };
           phoenix-word-count-dynamic-no-static = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-dynamic-no-static";
             cmakeFlags = [
-              "-Dstatic-musl-phoenix-root=${phoenix-word-count-seq-bin}"
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
             testRegex = "^phoenix-word-count-seq-static-musl:dynamic$";
           };
           phoenix-word-count-static-musl-hybrid = mkPhoenixCheck {
             name = "arancini-phoenix-word-count-static-musl-hybrid";
             cmakeFlags = [
-              "-Dstatic-musl-phoenix-root=${phoenix-word-count-seq-bin}"
+              "-Dstatic-musl-phoenix-root=${phoenix-seq}"
             ];
             testRegex = "^phoenix-word-count-seq-static-musl:hybrid$";
           };
