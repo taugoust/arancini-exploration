@@ -38,6 +38,10 @@ endfunction()
 set(phoenix-string-match-hash-args
     --replace-stdout-for-sha256 "^String Match: Completed -?[0-9]+$"
     "String Match: Completed 0")
+set(phoenix-linear-regression-mapreduce-hash-args
+    --replace-stdout-for-sha256
+    "^Linear Regression: Completed -?[0-9]+$"
+    "Linear Regression: Completed 0")
 
 # The pthread and mapreduce word_count implementations use distinct labels for
 # the same whole-second wall-clock measurement. Normalize only those exact lines
@@ -809,9 +813,7 @@ if(static-musl-mapreduce-phoenix-root)
       ${tester} -t "$<TARGET_FILE:txlat>" -i
       "${phoenix-linear-regression-mapreduce-bin}" -c
       "${phoenix-linear-regression-mapreduce-config}" --log-level INFO
-      --replace-stdout-for-sha256
-      "^Linear Regression: Completed -?[0-9]+$"
-      "Linear Regression: Completed 0")
+      ${phoenix-linear-regression-mapreduce-hash-args})
   set_tests_properties(
     "phoenix-linear-regression-mapreduce-static-musl:dynamic"
     PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
@@ -819,13 +821,15 @@ if(static-musl-mapreduce-phoenix-root)
   add_phoenix_hybrid_test(
     "phoenix-linear-regression-mapreduce-static-musl"
     "${phoenix-linear-regression-mapreduce-bin}"
-    "${phoenix-linear-regression-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-linear-regression-mapreduce-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-linear-regression-mapreduce-hash-args})
   set(phoenix-linear-regression-mapreduce-v2-bin
       "${static-musl-mapreduce-phoenix-root}/bin/linear_regression-v2-static-musl")
   add_phoenix_hybrid_test(
     "phoenix-linear-regression-mapreduce-v2-static-musl"
     "${phoenix-linear-regression-mapreduce-v2-bin}"
-    "${phoenix-linear-regression-mapreduce-config}" "${CMAKE_SOURCE_DIR}")
+    "${phoenix-linear-regression-mapreduce-config}" "${CMAKE_SOURCE_DIR}"
+    ${phoenix-linear-regression-mapreduce-hash-args})
 
   set(phoenix-matrix-multiply-mapreduce-bin
       "${static-musl-mapreduce-phoenix-root}/bin/matrix_multiply-static-musl")
