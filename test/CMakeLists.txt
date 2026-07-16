@@ -42,6 +42,10 @@ set(phoenix-linear-regression-mapreduce-hash-args
     --replace-stdout-for-sha256
     "^Linear Regression: Completed -?[0-9]+$"
     "Linear Regression: Completed 0")
+set(phoenix-matrix-multiply-pthread-hash-args
+    --replace-stdout-for-sha256
+    "^MatrixMult_pthreads: Multiply Completed time = -?[0-9]+$"
+    "MatrixMult_pthreads: Multiply Completed time = 0")
 
 # The pthread and mapreduce word_count implementations use distinct labels for
 # the same whole-second wall-clock measurement. Normalize only those exact lines
@@ -570,7 +574,8 @@ if(static-musl-pthread-phoenix-root)
     NAME "phoenix-matrix-multiply-pthread-static-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-matrix-multiply-pthread-bin}" -c
-            "${phoenix-matrix-multiply-pthread-config}" --log-level INFO)
+            "${phoenix-matrix-multiply-pthread-config}" --log-level INFO
+            ${phoenix-matrix-multiply-pthread-hash-args})
   set_tests_properties("phoenix-matrix-multiply-pthread-static-musl:dynamic"
                        PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY
@@ -579,13 +584,15 @@ if(static-musl-pthread-phoenix-root)
     "phoenix-matrix-multiply-pthread-static-musl"
     "${phoenix-matrix-multiply-pthread-bin}"
     "${phoenix-matrix-multiply-pthread-config}"
-    "${phoenix-matrix-multiply-pthread-workdir}")
+    "${phoenix-matrix-multiply-pthread-workdir}"
+    ${phoenix-matrix-multiply-pthread-hash-args})
 
   add_test(
     NAME "phoenix-matrix-multiply-pthread-v2-static-musl:dynamic"
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i
             "${phoenix-matrix-multiply-pthread-v2-bin}" -c
-            "${phoenix-matrix-multiply-pthread-v2-config}" --log-level INFO)
+            "${phoenix-matrix-multiply-pthread-v2-config}" --log-level INFO
+            ${phoenix-matrix-multiply-pthread-hash-args})
   set_tests_properties("phoenix-matrix-multiply-pthread-v2-static-musl:dynamic"
                        PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY
@@ -594,7 +601,8 @@ if(static-musl-pthread-phoenix-root)
     "phoenix-matrix-multiply-pthread-v2-static-musl"
     "${phoenix-matrix-multiply-pthread-v2-bin}"
     "${phoenix-matrix-multiply-pthread-v2-config}"
-    "${phoenix-matrix-multiply-pthread-workdir}")
+    "${phoenix-matrix-multiply-pthread-workdir}"
+    ${phoenix-matrix-multiply-pthread-hash-args})
 
   set(phoenix-pca-pthread-bin
       "${static-musl-pthread-phoenix-root}/bin/pca-pthread-static-musl")
@@ -1591,10 +1599,23 @@ if(dynamic-musl-pthread-phoenix-root)
 
   set(phoenix-pca-pthread-musl-bin
       "${dynamic-musl-pthread-phoenix-root}/bin/pca-pthread-v2")
+  set(phoenix-pca-pthread-musl-cpu-stub-c
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-musl-cpu-stub.c")
+  set(phoenix-pca-pthread-musl-cpu-stub
+      "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-musl-cpu-stub.o")
   set(phoenix-pca-pthread-musl-nlib
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-musl.nlib")
   set(phoenix-pca-pthread-musl-config
       "${CMAKE_CURRENT_BINARY_DIR}/phoenix-pca-pthread-musl.dynamic.json")
+
+  # Native nlib calls bypass the runtime's ARANCINI_GUEST_CPUS handling.
+  file(
+    WRITE "${phoenix-pca-pthread-musl-cpu-stub-c}"
+    "#define _GNU_SOURCE\n#include <sched.h>\n#include <stddef.h>\n#include <string.h>\n#include <unistd.h>\nint sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask) { (void)pid; memset(mask, 0, cpusetsize); if (cpusetsize >= sizeof(unsigned long)) ((unsigned long *)mask)[0] = 1ul; return 0; }\nlong sysconf(int name) { (void)name; return 1; }\n")
+  execute_process(
+    COMMAND "${CMAKE_C_COMPILER}" -c
+            "${phoenix-pca-pthread-musl-cpu-stub-c}" -o
+            "${phoenix-pca-pthread-musl-cpu-stub}")
 
   file(
     WRITE "${phoenix-pca-pthread-musl-nlib}"
@@ -1611,6 +1632,7 @@ if(dynamic-musl-pthread-phoenix-root)
     "void exit(i32 status);\n"
     "void __assert_fail(ptr assertion, ptr file, u32 line, ptr function);\n"
     "i32 rand();\n"
+    "library \"${phoenix-pca-pthread-musl-cpu-stub}\";\n"
     "i32 sched_getaffinity(i32 pid, u64 cpusetsize, ptr mask);\n"
     "i64 sysconf(i32 name);\n"
     "i32 pthread_attr_init(ptr attr);\n"
@@ -1624,7 +1646,7 @@ if(dynamic-musl-pthread-phoenix-root)
   file(
     GENERATE
     OUTPUT "${phoenix-pca-pthread-musl-config}"
-    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pca-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"deb79f46e45c17a2946468ba93c4fa8ce7bcf202019ef6bc359001c8e3c37da5\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
+    CONTENT "{\n    \"compile_flags\": [\"--no-static\", \"--nlib\", \"${phoenix-pca-pthread-musl-nlib}\", \"--cxx-compiler-path\", \"clang++\", \"--runtime-lib-path\", \"$<TARGET_FILE:arancini-runtime>\"],\n    \"runtime_environment\": {\n        \"ARANCINI_ENABLE_LOG\": \"false\",\n        \"ARANCINI_GUEST_CPUS\": \"1\",\n        \"ARANCINI_OPTIMIZE_FLAGS\": \"false\",\n        \"LD_LIBRARY_PATH\": \"$<TARGET_FILE_DIR:arancini-runtime>${host-libatomic-libdir}\"\n    },\n    \"runtime_flags\": [\"-r\", \"64\", \"-c\", \"64\", \"-s\", \"100\"],\n    \"expected_stdout_sha256\": \"a21aa5473551d2d8c2675b4d81a38ea270e19007e218c6487d90b0ae5b255dd1\",\n    \"expected_stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n")
 
   add_test(
     NAME "phoenix-pca-pthread-musl:dynamic"
