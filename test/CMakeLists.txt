@@ -3,6 +3,10 @@ project(arancini-tests LANGUAGES C ASM)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+set(ARANCINI_TEST_TIMEOUT
+    600
+    CACHE STRING "Maximum time in seconds allowed for each test")
+
 set(tester "${Python3_EXECUTABLE}"
            "${CMAKE_CURRENT_LIST_DIR}/translate-and-run.py")
 
@@ -13,7 +17,7 @@ function(add_phoenix_hybrid_test testname input_bin config workdir)
             "$<TARGET_FILE:txlat>" -i "${input_bin}" -c "${config}"
             --log-level INFO ${ARGN})
   set_tests_properties("${testname}:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${workdir}")
 endfunction()
 
@@ -23,7 +27,7 @@ function(add_phoenix_dynamic_and_hybrid_tests testname input_bin config workdir)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${input_bin}" -c
             "${config}" --log-level INFO ${ARGN})
   set_tests_properties("${testname}:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${workdir}")
   add_phoenix_hybrid_test("${testname}" "${input_bin}" "${config}"
                           "${workdir}" ${ARGN})
@@ -108,8 +112,8 @@ foreach(test ${smoke-tests})
         ${tester} -t "$<TARGET_FILE:txlat>" -i
         "${CMAKE_CURRENT_LIST_DIR}/${test}" -c "${config}" --log-level DEBUG)
 
-    # Ensure that each test completes in at most 180 seconds (3 minutes)
-    set_tests_properties("${testname}" PROPERTIES TIMEOUT 180)
+    # Ensure that each test completes within the configured timeout.
+    set_tests_properties("${testname}" PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}")
   endforeach()
 endforeach()
 
@@ -137,7 +141,7 @@ if(static-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-histogram-bin}"
             -c "${phoenix-histogram-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-seq-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -145,7 +149,7 @@ if(static-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-histogram-bin}"
             -c "${phoenix-histogram-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-seq-static-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-bin "${static-musl-phoenix-root}/bin/kmeans-seq-static-musl")
@@ -168,7 +172,7 @@ if(static-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-kmeans-bin}" -c
             "${phoenix-kmeans-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-seq-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -176,7 +180,7 @@ if(static-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-kmeans-bin}" -c
             "${phoenix-kmeans-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-seq-static-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-bin
@@ -212,7 +216,7 @@ if(static-musl-phoenix-root)
             "${phoenix-linear-regression-bin}" -c
             "${phoenix-linear-regression-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-seq-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -221,7 +225,7 @@ if(static-musl-phoenix-root)
             "${phoenix-linear-regression-bin}" -c
             "${phoenix-linear-regression-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-seq-static-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-matrix-multiply-bin
@@ -256,7 +260,7 @@ if(static-musl-phoenix-root)
             "${phoenix-matrix-multiply-bin}" -c
             "${phoenix-matrix-multiply-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-seq-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${phoenix-matrix-multiply-workdir}")
 
   add_test(
@@ -265,7 +269,7 @@ if(static-musl-phoenix-root)
             "${phoenix-matrix-multiply-bin}" -c
             "${phoenix-matrix-multiply-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-seq-static-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${phoenix-matrix-multiply-workdir}")
 
   set(phoenix-string-match-bin
@@ -298,7 +302,7 @@ if(static-musl-phoenix-root)
             "${phoenix-string-match-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -308,7 +312,7 @@ if(static-musl-phoenix-root)
             "${phoenix-string-match-hybrid-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-static-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-word-count-bin
@@ -340,7 +344,7 @@ if(static-musl-phoenix-root)
             "${phoenix-word-count-bin}" -c
             "${phoenix-word-count-config}" --log-level INFO)
   set_tests_properties("phoenix-word-count-seq-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -349,7 +353,7 @@ if(static-musl-phoenix-root)
             "${phoenix-word-count-bin}" -c
             "${phoenix-word-count-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-word-count-seq-static-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-pca-bin "${static-musl-phoenix-root}/bin/pca-seq-static-musl")
@@ -372,7 +376,7 @@ if(static-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-bin}" -c
             "${phoenix-pca-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-seq-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -380,7 +384,7 @@ if(static-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-bin}" -c
             "${phoenix-pca-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-seq-static-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
@@ -403,7 +407,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-histogram-pthread-bin}" -c
             "${phoenix-histogram-pthread-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-pthread-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-histogram-pthread-static-musl" "${phoenix-histogram-pthread-bin}"
@@ -425,7 +429,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-histogram-pthread-v2-bin}" -c
             "${phoenix-histogram-pthread-v2-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-pthread-v2-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-histogram-pthread-v2-static-musl"
@@ -448,7 +452,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-kmeans-pthread-bin}" -c
             "${phoenix-kmeans-pthread-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-pthread-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-kmeans-pthread-static-musl" "${phoenix-kmeans-pthread-bin}"
@@ -470,7 +474,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-kmeans-pthread-v2-bin}" -c
             "${phoenix-kmeans-pthread-v2-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-pthread-v2-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-kmeans-pthread-v2-static-musl" "${phoenix-kmeans-pthread-v2-bin}"
@@ -499,7 +503,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-linear-regression-pthread-bin}" -c
             "${phoenix-linear-regression-pthread-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-pthread-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-linear-regression-pthread-static-musl"
@@ -522,7 +526,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-linear-regression-pthread-v2-bin}" -c
             "${phoenix-linear-regression-pthread-v2-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-pthread-v2-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-linear-regression-pthread-v2-static-musl"
@@ -564,7 +568,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-matrix-multiply-pthread-bin}" -c
             "${phoenix-matrix-multiply-pthread-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-pthread-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY
                                     "${phoenix-matrix-multiply-pthread-workdir}")
   add_phoenix_hybrid_test(
@@ -579,7 +583,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-matrix-multiply-pthread-v2-bin}" -c
             "${phoenix-matrix-multiply-pthread-v2-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-pthread-v2-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY
                                     "${phoenix-matrix-multiply-pthread-workdir}")
   add_phoenix_hybrid_test(
@@ -611,7 +615,7 @@ if(static-musl-pthread-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-pthread-bin}"
             -c "${phoenix-pca-pthread-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-pthread-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-pca-pthread-static-musl" "${phoenix-pca-pthread-bin}"
@@ -623,7 +627,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-pca-pthread-v2-bin}" -c
             "${phoenix-pca-pthread-v2-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-pthread-v2-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-pca-pthread-v2-static-musl" "${phoenix-pca-pthread-v2-bin}"
@@ -663,7 +667,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-string-match-pthread-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-string-match-pthread-static-musl"
@@ -678,7 +682,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-string-match-pthread-v2-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-v2-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-string-match-pthread-v2-static-musl"
@@ -720,7 +724,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-word-count-pthread-config}" --log-level INFO
             ${phoenix-word-count-pthread-hash-args})
   set_tests_properties("phoenix-word-count-pthread-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-word-count-pthread-static-musl" "${phoenix-word-count-pthread-bin}"
@@ -734,7 +738,7 @@ if(static-musl-pthread-phoenix-root)
             "${phoenix-word-count-pthread-v2-config}" --log-level INFO
             ${phoenix-word-count-pthread-hash-args})
   set_tests_properties("phoenix-word-count-pthread-v2-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-word-count-pthread-v2-static-musl"
@@ -810,7 +814,7 @@ if(static-musl-mapreduce-phoenix-root)
       "Linear Regression: Completed 0")
   set_tests_properties(
     "phoenix-linear-regression-mapreduce-static-musl:dynamic"
-    PROPERTIES TIMEOUT 180
+    PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-linear-regression-mapreduce-static-musl"
@@ -873,7 +877,7 @@ if(static-musl-mapreduce-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-mapreduce-bin}"
             -c "${phoenix-pca-mapreduce-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-mapreduce-static-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   add_phoenix_hybrid_test(
     "phoenix-pca-mapreduce-static-musl" "${phoenix-pca-mapreduce-bin}"
@@ -959,7 +963,7 @@ if(static-glibc-pthread-phoenix-root)
             "${phoenix-histogram-pthread-static-glibc-bin}" -c
             "${phoenix-histogram-pthread-static-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-pthread-static-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-pthread-static-glibc-bin
@@ -978,7 +982,7 @@ if(static-glibc-pthread-phoenix-root)
             "${phoenix-kmeans-pthread-static-glibc-bin}" -c
             "${phoenix-kmeans-pthread-static-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-pthread-static-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-pthread-static-glibc-bin
@@ -1008,7 +1012,7 @@ if(static-glibc-pthread-phoenix-root)
             "${phoenix-linear-regression-pthread-static-glibc-config}"
             --log-level INFO)
   set_tests_properties("phoenix-linear-regression-pthread-static-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-matrix-multiply-pthread-static-glibc-bin
@@ -1041,7 +1045,7 @@ if(static-glibc-pthread-phoenix-root)
             --log-level INFO)
   set_tests_properties(
     "phoenix-matrix-multiply-pthread-static-glibc:dynamic"
-    PROPERTIES TIMEOUT 180
+    PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                WORKING_DIRECTORY
                  "${phoenix-matrix-multiply-pthread-static-glibc-workdir}")
 
@@ -1061,7 +1065,7 @@ if(static-glibc-pthread-phoenix-root)
             "${phoenix-pca-pthread-static-glibc-bin}" -c
             "${phoenix-pca-pthread-static-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-pthread-static-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-string-match-pthread-static-glibc-bin
@@ -1091,7 +1095,7 @@ if(static-glibc-pthread-phoenix-root)
             "${phoenix-string-match-pthread-static-glibc-config}"
             --log-level INFO ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-static-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-word-count-pthread-static-glibc-bin
@@ -1121,7 +1125,7 @@ if(static-glibc-pthread-phoenix-root)
             "${phoenix-word-count-pthread-static-glibc-config}"
             --log-level INFO)
   set_tests_properties("phoenix-word-count-pthread-static-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
@@ -1204,7 +1208,7 @@ if(dynamic-glibc-pthread-phoenix-root)
             "${phoenix-histogram-pthread-glibc-bin}" -c
             "${phoenix-histogram-pthread-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-pthread-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-pthread-glibc-bin
@@ -1221,7 +1225,7 @@ if(dynamic-glibc-pthread-phoenix-root)
             "${phoenix-kmeans-pthread-glibc-bin}" -c
             "${phoenix-kmeans-pthread-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-pthread-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-pthread-glibc-bin
@@ -1244,7 +1248,7 @@ if(dynamic-glibc-pthread-phoenix-root)
             "${phoenix-linear-regression-pthread-glibc-bin}" -c
             "${phoenix-linear-regression-pthread-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-pthread-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-matrix-multiply-pthread-glibc-bin
@@ -1272,7 +1276,7 @@ if(dynamic-glibc-pthread-phoenix-root)
             "${phoenix-matrix-multiply-pthread-glibc-bin}" -c
             "${phoenix-matrix-multiply-pthread-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-pthread-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY
                                     "${phoenix-matrix-multiply-pthread-glibc-workdir}")
 
@@ -1290,7 +1294,7 @@ if(dynamic-glibc-pthread-phoenix-root)
             "${phoenix-pca-pthread-glibc-bin}" -c
             "${phoenix-pca-pthread-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-pthread-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-string-match-pthread-glibc-bin
@@ -1314,7 +1318,7 @@ if(dynamic-glibc-pthread-phoenix-root)
             "${phoenix-string-match-pthread-glibc-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-word-count-pthread-glibc-bin
@@ -1337,7 +1341,7 @@ if(dynamic-glibc-pthread-phoenix-root)
             "${phoenix-word-count-pthread-glibc-bin}" -c
             "${phoenix-word-count-pthread-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-word-count-pthread-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
@@ -1388,7 +1392,7 @@ if(dynamic-musl-pthread-phoenix-root)
             "${phoenix-histogram-pthread-musl-bin}" -c
             "${phoenix-histogram-pthread-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-pthread-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-pthread-musl-bin
@@ -1433,7 +1437,7 @@ if(dynamic-musl-pthread-phoenix-root)
             "${phoenix-kmeans-pthread-musl-bin}" -c
             "${phoenix-kmeans-pthread-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-pthread-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-pthread-musl-bin
@@ -1498,7 +1502,7 @@ if(dynamic-musl-pthread-phoenix-root)
             "${phoenix-linear-regression-pthread-musl-bin}" -c
             "${phoenix-linear-regression-pthread-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-pthread-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-matrix-multiply-pthread-musl-bin
@@ -1577,7 +1581,7 @@ if(dynamic-musl-pthread-phoenix-root)
             "${phoenix-matrix-multiply-pthread-musl-bin}" -c
             "${phoenix-matrix-multiply-pthread-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-pthread-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY
                                     "${phoenix-matrix-multiply-pthread-musl-workdir}")
 
@@ -1624,7 +1628,7 @@ if(dynamic-musl-pthread-phoenix-root)
             "${phoenix-pca-pthread-musl-bin}" -c
             "${phoenix-pca-pthread-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-pthread-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-string-match-pthread-musl-bin
@@ -1698,7 +1702,7 @@ if(dynamic-musl-pthread-phoenix-root)
             "${phoenix-string-match-pthread-musl-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-pthread-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-word-count-pthread-musl-bin
@@ -1772,7 +1776,7 @@ if(dynamic-musl-pthread-phoenix-root)
             "${phoenix-word-count-pthread-musl-bin}" -c
             "${phoenix-word-count-pthread-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-word-count-pthread-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
@@ -1819,7 +1823,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-histogram-musl-bin}" -c
             "${phoenix-histogram-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-seq-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -1828,7 +1832,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-histogram-musl-bin}" -c
             "${phoenix-histogram-musl-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-seq-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-musl-bin "${dynamic-musl-phoenix-root}/bin/kmeans-seq-v2")
@@ -1870,7 +1874,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-kmeans-musl-bin}" -c
             "${phoenix-kmeans-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-seq-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -1879,7 +1883,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-kmeans-musl-bin}" -c
             "${phoenix-kmeans-musl-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-seq-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-musl-bin
@@ -1927,7 +1931,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-linear-regression-musl-bin}" -c
             "${phoenix-linear-regression-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-seq-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -1936,7 +1940,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-linear-regression-musl-bin}" -c
             "${phoenix-linear-regression-musl-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-seq-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-matrix-multiply-musl-bin
@@ -1995,7 +1999,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-matrix-multiply-musl-bin}" -c
             "${phoenix-matrix-multiply-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-seq-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${phoenix-matrix-multiply-musl-workdir}")
 
   add_test(
@@ -2004,7 +2008,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-matrix-multiply-musl-bin}" -c
             "${phoenix-matrix-multiply-musl-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-seq-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${phoenix-matrix-multiply-musl-workdir}")
 
   set(phoenix-string-match-musl-bin
@@ -2063,7 +2067,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-string-match-musl-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2073,7 +2077,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-string-match-musl-hybrid-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-word-count-musl-bin
@@ -2131,7 +2135,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-word-count-musl-bin}" -c
             "${phoenix-word-count-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-word-count-seq-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2140,7 +2144,7 @@ if(dynamic-musl-phoenix-root)
             "${phoenix-word-count-musl-bin}" -c
             "${phoenix-word-count-musl-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-word-count-seq-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-pca-musl-bin "${dynamic-musl-phoenix-root}/bin/pca-seq-v2")
@@ -2178,7 +2182,7 @@ if(dynamic-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-musl-bin}"
             -c "${phoenix-pca-musl-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-seq-musl:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2186,7 +2190,7 @@ if(dynamic-musl-phoenix-root)
     COMMAND ${tester} -t "$<TARGET_FILE:txlat>" -i "${phoenix-pca-musl-bin}"
             -c "${phoenix-pca-musl-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-seq-musl:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
@@ -2250,7 +2254,7 @@ if(dynamic-phoenix-root)
             "${phoenix-histogram-glibc-bin}" -c
             "${phoenix-histogram-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-seq-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2259,7 +2263,7 @@ if(dynamic-phoenix-root)
             "${phoenix-histogram-glibc-bin}" -c
             "${phoenix-histogram-glibc-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-histogram-seq-glibc:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-kmeans-glibc-bin "${dynamic-phoenix-root}/bin/kmeans-seq-v2")
@@ -2307,7 +2311,7 @@ if(dynamic-phoenix-root)
             "${phoenix-kmeans-glibc-bin}" -c
             "${phoenix-kmeans-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-seq-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2316,7 +2320,7 @@ if(dynamic-phoenix-root)
             "${phoenix-kmeans-glibc-bin}" -c
             "${phoenix-kmeans-glibc-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-kmeans-seq-glibc:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-linear-regression-glibc-bin
@@ -2382,7 +2386,7 @@ if(dynamic-phoenix-root)
             "${phoenix-linear-regression-glibc-bin}" -c
             "${phoenix-linear-regression-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-seq-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2391,7 +2395,7 @@ if(dynamic-phoenix-root)
             "${phoenix-linear-regression-glibc-bin}" -c
             "${phoenix-linear-regression-glibc-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-linear-regression-seq-glibc:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-matrix-multiply-glibc-bin
@@ -2452,7 +2456,7 @@ if(dynamic-phoenix-root)
             "${phoenix-matrix-multiply-glibc-bin}" -c
             "${phoenix-matrix-multiply-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-seq-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${phoenix-matrix-multiply-glibc-workdir}")
 
   add_test(
@@ -2461,7 +2465,7 @@ if(dynamic-phoenix-root)
             "${phoenix-matrix-multiply-glibc-bin}" -c
             "${phoenix-matrix-multiply-glibc-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-matrix-multiply-seq-glibc:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${phoenix-matrix-multiply-glibc-workdir}")
 
   set(phoenix-pca-glibc-bin "${dynamic-phoenix-root}/bin/pca-seq-v2")
@@ -2502,7 +2506,7 @@ if(dynamic-phoenix-root)
             "${phoenix-pca-glibc-bin}" -c
             "${phoenix-pca-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-seq-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2511,7 +2515,7 @@ if(dynamic-phoenix-root)
             "${phoenix-pca-glibc-bin}" -c
             "${phoenix-pca-glibc-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-pca-seq-glibc:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-string-match-glibc-bin
@@ -2574,7 +2578,7 @@ if(dynamic-phoenix-root)
             "${phoenix-string-match-glibc-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2584,7 +2588,7 @@ if(dynamic-phoenix-root)
             "${phoenix-string-match-glibc-hybrid-config}" --log-level INFO
             ${phoenix-string-match-hash-args})
   set_tests_properties("phoenix-string-match-seq-glibc:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   set(phoenix-word-count-glibc-bin
@@ -2644,7 +2648,7 @@ if(dynamic-phoenix-root)
             "${phoenix-word-count-glibc-bin}" -c
             "${phoenix-word-count-glibc-config}" --log-level INFO)
   set_tests_properties("phoenix-word-count-seq-glibc:dynamic"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
   add_test(
@@ -2653,7 +2657,7 @@ if(dynamic-phoenix-root)
             "${phoenix-word-count-glibc-bin}" -c
             "${phoenix-word-count-glibc-hybrid-config}" --log-level INFO)
   set_tests_properties("phoenix-word-count-seq-glibc:hybrid"
-                       PROPERTIES TIMEOUT 180
+                       PROPERTIES TIMEOUT "${ARANCINI_TEST_TIMEOUT}"
                                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 

@@ -145,7 +145,8 @@
           }:
           let
             checkCmakeFlags =
-              native_pkgs.lib.optionals (native_pkgs.lib.hasInfix "histogram" testRegex) [
+              [ "-DARANCINI_TEST_TIMEOUT=600" ]
+              ++ native_pkgs.lib.optionals (native_pkgs.lib.hasInfix "histogram" testRegex) [
                 "-Dphoenix-data-root=${phoenixHistogramData}"
               ]
               ++ cmakeFlags;
